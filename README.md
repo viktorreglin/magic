@@ -33,3 +33,7 @@ Was soll mit einer Sammlung möglich sein?
     Beispiel:
         17 Forest
         2 Akroan Horse
+        
+        
+Link zur Kartendatenbank: https://mtgjson.com/json/AllCards.json.zip
+Kartenpreise API: https://www.mkmapi.eu/ws/documentation/API_Main_Page
