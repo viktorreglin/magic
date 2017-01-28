@@ -27,12 +27,9 @@ Was soll mit einer Sammlung möglich sein?
      Angucken.
      Karten hinzufügen, löschen, Anzahl in Main oder Sideboard ändern.
      Statistiken der drei Bereiche einzeln abrufen.
-     Main und Sideboard müssen irgendiwe in die Zwischenablage gebracht werden können (evtl. über Textdatei), im Format:
-        ANZAHL LEERZEICHEN KARTENNAME
-        ANZAHL LEERZEICHEN KARTENNAME
-    Beispiel:
+     Main und Sideboard müssen irgendiwe in die Zwischenablage gebracht werden können (evtl. über Textdatei), in einem bestimmten Format.
+        Beispiel:
         17 Forest
-        2 Akroan Horse
         
         
 Link zur Kartendatenbank: https://mtgjson.com/json/AllCards.json.zip
