@@ -1,3 +1,4 @@
+TEST
 # magic
 it's magic!
 
