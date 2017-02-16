@@ -1,8 +1,7 @@
-TEST
 # magic
 it's magic!
 
-Ziel:
+Ziel: TEST
 Kreiere und verwalte MTG Decks.
 
 Benutzung:
