@@ -1,5 +1,8 @@
 # magic
-it's magic! TEST
+
+UPDATE: Dokumentation der Ordernerstruktur liegt unter doc/
+
+it's magic!
 
 Ziel:
 Kreiere und verwalte MTG Decks.
