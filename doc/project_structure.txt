@@ -1,0 +1,29 @@
+Legende:
+D_    Directory
+F_    File
+
+D_magic
+   D_data // externe Daten
+      F_allsets.zip
+      F_allsets.json
+      F_allsets_readable
+   D_src // Quellen der einzelnen Programmteile
+      D_load_db
+      D_get_price
+      D_query_db
+      D_price_daemon
+      D_deck_editor
+      D_statistics
+      D_output
+      D_read_config
+      D_util // Module, die für mehrere Programmteile nützlich sind
+   D_bin // (ausführbare) Binärdateien
+   D_lib // externe Bibliotheken / Programme
+   D_doc // Dokumentation
+      F_project_structure.txt
+   D_test // Testdateien
+   F_config
+   F_readme
+   F_license
+   F_makefile
+   F_magic

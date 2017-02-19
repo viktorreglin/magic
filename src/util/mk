@@ -1,0 +1,2 @@
+gcc -o test_config -g -DTEST_CONFIG -DLINUX config.c readfile.c filelength.c salloc.c
+gcc -o formjson formjson.c
