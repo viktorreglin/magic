@@ -1,5 +1,6 @@
 // Downloads and unpacks the cards database.
 
+//TEST
 #include <stdio.h>
 #include <unistd.h> // For chdir().
 
