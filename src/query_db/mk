@@ -1,0 +1,1 @@
+gcc -o dbclient -I/usr/include/mysql dbclient.c -lmysqlclient
