@@ -21,7 +21,16 @@ static char * s_table   = "card";
 
 static void usage( void )
 {
-   fprintf( stderr, "usage: dbclient -i property value property value ...\n" );
+   fprintf( stderr, "usage: dbclient option [parameters]\n" );
+   fprintf( stderr, "       options: -t  create or change table\n" );
+   fprintf( stderr, "                -x  remove table\n" );
+   fprintf( stderr, "                -i  insert data\n" );
+   fprintf( stderr, "                -c  change data\n" );
+   fprintf( stderr, "                -r  remove data\n" );
+   fprintf( stderr, "                -d  dump database\n" );
+   fprintf( stderr, "       dbclient -t table property type property type ...\n" );
+   fprintf( stderr, "       dbclient -x table\n" );
+   fprintf( stderr, "       dbclient -i table property value property value ...\n" );
    fprintf( stderr, "       dbclient -d\n" );
    exit( 2 );
 }
@@ -94,7 +103,19 @@ int i;
 }
 
 
-static void insert( MYSQL * conn, int numofpairs, char * par[] )
+static void createtable( MYSQL * conn, char * table, int numofpairs, char * par[] )
+{
+   print_error( 0, "not implemented, yet", "-t" );
+}
+
+
+static void deletetable( MYSQL * conn, char * table )
+{
+   print_error( 0, "not implemented, yet", "-x" );
+}
+
+
+static void insert( MYSQL * conn, char * table, int numofpairs, char * par[] )
 {
    int i, qlen;
    char * query;
@@ -103,9 +124,9 @@ static void insert( MYSQL * conn, int numofpairs, char * par[] )
    static char pattern[] = "insert into %s (!) values (?);"; // %s = table, ! = properties, ? = values
 
    // Gesamt-Stringlaenge bestimmen
-   qlen = strlen(pattern) + strlen(s_table) + 1;
+   qlen = strlen(pattern) + strlen(table) + 1;
    for( i = 0; i < numofpairs; i++ )
-      qlen += strlen(par[2*i]) + strlen(par[2*i+1]) + 2; // 2 for , ,
+      qlen += strlen(par[2*i]) + strlen(par[2*i+1]) + 4; // 4 for ,,''
 
    // query bauen
    query = malloc(qlen);
@@ -114,7 +135,7 @@ static void insert( MYSQL * conn, int numofpairs, char * par[] )
       print_error( 0, "not enough memory for query", "" );
       return;
    }
-   sprintf( query, pattern, s_table );
+   sprintf( query, pattern, table );
    insertstrings( query, pattern, '!', numofpairs, par   ); // properties
    insertstrings( query, pattern, '?', numofpairs, par+1 ); // values
    printf( "dbclient query: %s\n", query );
@@ -136,7 +157,7 @@ static void insert( MYSQL * conn, int numofpairs, char * par[] )
 
 static void dump( MYSQL * conn )
 {
-
+   print_error( 0, "not implemented, yet", "-d" );
 }
 
 
@@ -155,12 +176,30 @@ MYSQL * conn;
       usage();
    switch( argv[1][1] )
    {
+   case 't':
+      if( argc < 5 )
+         usage();
+      if( argc % 2 != 1 )
+         usage();
+      createtable( conn, argv[2], (argc-3)/2, argv+3 );
+      break;
+   case 'x':
+      if( argc != 3 )
+         usage();
+      deletetable( conn, argv[2] );
+      break;
    case 'i':
-      if( argc < 4 )
+      if( argc < 5 )
          usage();
-      if( argc % 2 != 0 )
+      if( argc % 2 != 1 )
          usage();
-      insert( conn, (argc-2)/2, argv+2 );
+      insert( conn, argv[2], (argc-3)/2, argv+3 );
+      break;
+   case 'c':
+      print_error( 0, "not implemented, yet", "-c" );
+      break;
+   case 'r':
+      print_error( 0, "not implemented, yet", "-r" );
       break;
    case 'd':
       if( argc > 2 )
