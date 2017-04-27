@@ -2,7 +2,10 @@
 
 #include <stdlib.h>
 #include <stdio.h>
+#include <string.h>
 #include <mysql.h>
+
+#define QUERY_PAR_DELIM ','
 
 // diese Daten sollten aus dem config-File kommen
 static char * s_host    = NULL;
@@ -65,15 +68,69 @@ MYSQL * conn;
 }
 
 
+static void insertstrings( char * query, char * pattern, char mark, int num, char * par[] )
+{
+char * dst;
+char * pat;
+int i;
+
+   dst = strchr( query, mark );
+   pat = strchr( pattern, mark );
+   if( !dst || !pat )
+   {
+      print_error( 0, "internal error", "wrong insert pattern" );
+      return;
+   }
+
+   for( i = 0; i < num; i++ )
+   {
+      strcpy( dst, par[2*i] );
+      dst += strlen(par[2*i]);
+      *dst++ = QUERY_PAR_DELIM;
+   }
+   dst--;
+   pat++;
+   strcpy( dst, pat );
+}
+
+
 static void insert( MYSQL * conn, int numofpairs, char * par[] )
 {
-// INSERT INTO table (prop, ...) VALUES (..., ...);
-/*
-   if( mysql_query( conn, "INSERT ... " ) != 0 )
-      print_error
+   int i, qlen;
+   char * query;
+   char * prop;
+   char * val;
+   static char pattern[] = "insert into %s (!) values (?);"; // %s = table, ! = properties, ? = values
+
+   // Gesamt-Stringlaenge bestimmen
+   qlen = strlen(pattern) + strlen(s_table) + 1;
+   for( i = 0; i < numofpairs; i++ )
+      qlen += strlen(par[2*i]) + strlen(par[2*i+1]) + 2; // 2 for , ,
+
+   // query bauen
+   query = malloc(qlen);
+   if( !query )
+   {
+      print_error( 0, "not enough memory for query", "" );
+      return;
+   }
+   sprintf( query, pattern, s_table );
+   insertstrings( query, pattern, '!', numofpairs, par   ); // properties
+   insertstrings( query, pattern, '?', numofpairs, par+1 ); // values
+   printf( "dbclient query: %s\n", query );
+
+   // zur Datenbankl
+   if( mysql_query( conn, query ) != 0 )
+   {
+      print_error( conn, "cannot insert", query );
+   }
    else
-      (unsigned long)mysql_affected_rows(conn);
-*/
+   {
+      unsigned long n;
+      n = (unsigned long)mysql_affected_rows(conn);
+      printf( "dbclient: %lu mysql_affected row%s\n", n, n == 1 ? "" : "s" );
+   }
+   free( query );
 }
 
 
