@@ -5,7 +5,20 @@
 #include <string.h>
 #include <mysql.h>
 
-#define QUERY_PAR_DELIM ','
+
+typedef struct
+{
+   char * name;
+   char * type;
+   int typeflags;
+} TABLEENTRY;
+
+// typeflags:
+#define TYPE_IS_STRING 1
+
+
+#define QUERY_STRING_DELIM '\''
+#define QUERY_PAR_DELIM    ','
 
 // diese Daten sollten aus dem config-File kommen
 static char * s_host    = NULL;
@@ -15,21 +28,32 @@ static char * s_dbname  = "magic1";
 static char * s_socket  = NULL;
 static unsigned int s_port = 0;
 
-static char * s_table   = "card";
-
+/* Diese Information sollte aus der Datenbank kommen oder
+   aus der sql-Datei, mit der die Tabelle erzeugt wurde.
+   Wahrscheinlich wird nur gebarucht, ob String oder nicht. */
+static TABLEENTRY s_table[] =
+{
+   { "name"         , "varchar(80)", 1 },
+   { "pricecent"    , "int"        , 0 },
+   { "edition"      , "char(8)"    , 1 },
+   { "colorIdentity", "varchar(15)", 1 },
+   { "id"           , "char(40)"   , 1 },
+   { "manaCost"     , "smallint"   , 0 },
+   { "types"        , "varchar(40)", 1 },
+   { "power"        , "tinyint"    , 0 },
+   { "toughness"    , "tinyint"    , 0 },
+   { "text"         , "text"       , 1 },
+   { 0, 0, 0 } // end of table
+};
 
 
 static void usage( void )
 {
    fprintf( stderr, "usage: dbclient option [parameters]\n" );
-   fprintf( stderr, "       options: -t  create or change table\n" );
-   fprintf( stderr, "                -x  remove table\n" );
-   fprintf( stderr, "                -i  insert data\n" );
+   fprintf( stderr, "       options: -i  insert data\n" );
    fprintf( stderr, "                -c  change data\n" );
    fprintf( stderr, "                -r  remove data\n" );
    fprintf( stderr, "                -d  dump database\n" );
-   fprintf( stderr, "       dbclient -t table property type property type ...\n" );
-   fprintf( stderr, "       dbclient -x table\n" );
    fprintf( stderr, "       dbclient -i table property value property value ...\n" );
    fprintf( stderr, "       dbclient -d\n" );
    exit( 2 );
@@ -77,7 +101,7 @@ MYSQL * conn;
 }
 
 
-static void insertstrings( char * query, char * pattern, char mark, int num, char * par[] )
+static void insertstrings( char * query, char * pattern, char mark, int num, char * par[], unsigned char * isstring )
 {
 char * dst;
 char * pat;
@@ -93,8 +117,12 @@ int i;
 
    for( i = 0; i < num; i++ )
    {
+      if( isstring && isstring[i] )
+         *dst++ = QUERY_STRING_DELIM;
       strcpy( dst, par[2*i] );
       dst += strlen(par[2*i]);
+      if( isstring && isstring[i] )
+         *dst++ = QUERY_STRING_DELIM;
       *dst++ = QUERY_PAR_DELIM;
    }
    dst--;
@@ -103,15 +131,25 @@ int i;
 }
 
 
-static void createtable( MYSQL * conn, char * table, int numofpairs, char * par[] )
+static TABLEENTRY * gettabletypes( char * table )
 {
-   print_error( 0, "not implemented, yet", "-t" );
+   return s_table; // spaeter aus db oder  db_table.sql
 }
 
 
-static void deletetable( MYSQL * conn, char * table )
+static unsigned char typeisstring( char * elemname, TABLEENTRY * typeinfo )
 {
-   print_error( 0, "not implemented, yet", "-x" );
+TABLEENTRY * pt;
+
+   pt = typeinfo;
+   while( pt->name )
+   {
+      if( strcmp(pt->name,elemname) == 0 )
+         return pt->typeflags & TYPE_IS_STRING;
+      pt++;
+   }
+   print_error( 0, "property does not exist", elemname );
+   return 0;
 }
 
 
@@ -121,7 +159,20 @@ static void insert( MYSQL * conn, char * table, int numofpairs, char * par[] )
    char * query;
    char * prop;
    char * val;
+   TABLEENTRY * tabletype;
+   unsigned char * isstring; // array: 1 element per property
    static char pattern[] = "insert into %s (!) values (?);"; // %s = table, ! = properties, ? = values
+
+   // Wir brauchen die Typen der Properties
+   tabletype = gettabletypes( table );
+   isstring = malloc(numofpairs);
+   if( !isstring )
+   {
+      print_error( 0, "not enough memory for type info", "" );
+      return;
+   }
+   for( i = 0; i < numofpairs; i++ )
+      isstring[i] = typeisstring( par[2*i], tabletype );
 
    // Gesamt-Stringlaenge bestimmen
    qlen = strlen(pattern) + strlen(table) + 1;
@@ -136,11 +187,11 @@ static void insert( MYSQL * conn, char * table, int numofpairs, char * par[] )
       return;
    }
    sprintf( query, pattern, table );
-   insertstrings( query, pattern, '!', numofpairs, par   ); // properties
-   insertstrings( query, pattern, '?', numofpairs, par+1 ); // values
+   insertstrings( query, pattern, '!', numofpairs, par  , 0        ); // properties
+   insertstrings( query, pattern, '?', numofpairs, par+1, isstring ); // values, type info benutzen
    printf( "dbclient query: %s\n", query );
 
-   // zur Datenbankl
+   // zur Datenbank
    if( mysql_query( conn, query ) != 0 )
    {
       print_error( conn, "cannot insert", query );
@@ -149,7 +200,7 @@ static void insert( MYSQL * conn, char * table, int numofpairs, char * par[] )
    {
       unsigned long n;
       n = (unsigned long)mysql_affected_rows(conn);
-      printf( "dbclient: %lu mysql_affected row%s\n", n, n == 1 ? "" : "s" );
+      printf( "dbclient: %lu affected row%s\n", n, n == 1 ? "" : "s" );
    }
    free( query );
 }
@@ -176,18 +227,6 @@ MYSQL * conn;
       usage();
    switch( argv[1][1] )
    {
-   case 't':
-      if( argc < 5 )
-         usage();
-      if( argc % 2 != 1 )
-         usage();
-      createtable( conn, argv[2], (argc-3)/2, argv+3 );
-      break;
-   case 'x':
-      if( argc != 3 )
-         usage();
-      deletetable( conn, argv[2] );
-      break;
    case 'i':
       if( argc < 5 )
          usage();
@@ -209,7 +248,6 @@ MYSQL * conn;
    default:
       usage();
    }
-
 
    disconnect(conn);
    exit(0);
