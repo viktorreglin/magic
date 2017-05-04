@@ -53,9 +53,9 @@ static void usage( void )
    fprintf( stderr, "       options: -i  insert data\n" );
    fprintf( stderr, "                -c  change data\n" );
    fprintf( stderr, "                -r  remove data\n" );
-   fprintf( stderr, "                -d  dump database\n" );
+   fprintf( stderr, "                -d  dump data\n" );
    fprintf( stderr, "       dbclient -i table property value property value ...\n" );
-   fprintf( stderr, "       dbclient -d\n" );
+   fprintf( stderr, "       dbclient -d table\n" );
    exit( 2 );
 }
 
@@ -183,7 +183,7 @@ static void insert( MYSQL * conn, char * table, int numofpairs, char * par[] )
    query = malloc(qlen);
    if( !query )
    {
-      print_error( 0, "not enough memory for query", "" );
+      print_error( 0, "not enough memory for query", pattern );
       return;
    }
    sprintf( query, pattern, table );
@@ -206,11 +206,91 @@ static void insert( MYSQL * conn, char * table, int numofpairs, char * par[] )
 }
 
 
-static void dump( MYSQL * conn )
+static void dump( MYSQL * conn, char * table )
 {
-   print_error( 0, "not implemented, yet", "-d" );
-}
+   int i, num, qlen;
+   char * query;
+   char * patt2;
+   TABLEENTRY * pt;
+   char ** prop;
+   MYSQL_RES * result;
+   MYSQL_ROW   row;
+   static char pattern[] = "select ! from %s;"; // %s = table, ! = properties
 
+   // Gesamt-Stringlaenge bestimmen
+   qlen = strlen(pattern) + strlen(table) + 1;
+   num = 0;
+   pt = gettabletypes( table );
+   while( pt->name )
+   {
+      qlen += strlen( pt->name ) + 1; // 1 for ,
+      num++;
+      pt++;
+   }
+   // property array
+   prop = malloc(2*num*sizeof(char *));
+   if( !prop )
+   {
+      print_error( 0, "not enough memory for property array", table );
+      return;
+   }
+   num = 0;
+   pt = gettabletypes( table );
+   while( pt->name )
+   {
+      prop[2*num] = pt->name;
+      num++;
+      pt++;
+   }
+
+   // query bauen
+   query = malloc(qlen);
+   if( !query )
+   {
+      print_error( 0, "not enough memory for query", pattern );
+      return;
+   }
+   sprintf( query, pattern, table );
+   patt2 = malloc(strlen(query)+1);
+   if( !patt2 )
+   {
+      print_error( 0, "not enough memory for pattern copy", query );
+      return;
+   }
+   patt2 = strcpy( patt2, query );
+
+   insertstrings( query, patt2, '!', num, prop, 0 );
+   printf( "dbclient query: %s\n", query );
+
+   // zur Datenbank
+   if( mysql_query( conn, query ) != 0 )
+   {
+      print_error( conn, "cannot dump", query );
+   }
+   else
+   {
+      result = mysql_store_result(conn);
+      if( result )
+      {
+         while( (row = mysql_fetch_row(result)) != NULL )
+         {
+            for( i = 0; i < mysql_num_fields(result); i++ )
+            {
+               printf( "%s\t", row[i] );
+            }
+            printf("\n");
+         }
+
+         mysql_free_result(result);
+      }
+      else
+      {
+         print_error( conn, "cannot store result", query );
+      }
+   }
+   free(prop);
+   free(query);
+}
 
 
 int main( int argc, char * argv[] )
@@ -241,9 +321,9 @@ MYSQL * conn;
       print_error( 0, "not implemented, yet", "-r" );
       break;
    case 'd':
-      if( argc > 2 )
+      if( argc != 3 )
          usage();
-      dump(conn);
+      dump( conn, argv[2] );
       break;
    default:
       usage();
