@@ -156,6 +156,27 @@ static char ** propertyarray( char * table, int * pnum )
 }
 
 
+int qstrcpy( char * dst, char * src ) // ' --> '', returns # of such extra chars
+{
+   int add = 0;
+   if( !src )
+      return 0;
+   while( *src )
+   {
+      if( *src == QUERY_STRING_DELIM )
+      {
+         add++;
+         if( dst )
+            *dst++ = QUERY_STRING_DELIM;
+      }
+      if( dst )
+         *dst++ = *src;
+      src++;
+   }
+   return add;
+}
+
+
 static void insertstrings( char * query, char * pattern, char mark, int num, char * par[], bool isstring[] )
 {
 char * dst;
@@ -171,7 +192,7 @@ int i;
    {
       if( isstring && isstring[i] )
          *dst++ = QUERY_STRING_DELIM;
-      strcpy( dst, par[i] );
+      qstrcpy( dst, par[i] );
       dst += strlen(par[i]);
       if( isstring && isstring[i] )
          *dst++ = QUERY_STRING_DELIM;
@@ -200,7 +221,7 @@ static char * buildquery( char * pattern, char * table, TABLEENTRY * tabdef, int
    if(val)
    {
       for( i = 0; i < num; i++ )
-         qlen += strlen(val[i]) + 3; // 3 for ,''
+         qlen += strlen(val[i]) + qstrcpy( 0, val[i] ) + 3; // 3 for ,''
    }
 
    query = salloc(qlen+1);
