@@ -1,1 +1,2 @@
-gcc -o dbclient -g -I/usr/include/mysql dbclient.c -lmysqlclient
+mkdir -p obj
+make $*

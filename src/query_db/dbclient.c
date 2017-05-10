@@ -5,6 +5,8 @@
 #include <string.h>
 #include <mysql.h>
 
+#include "bool.h"
+#include "salloc.h"
 
 typedef struct
 {
@@ -29,8 +31,7 @@ static char * s_socket  = NULL;
 static unsigned int s_port = 0;
 
 /* Diese Information sollte aus der Datenbank kommen oder
-   aus der sql-Datei, mit der die Tabelle erzeugt wurde.
-   Wahrscheinlich wird nur gebarucht, ob String oder nicht. */
+   aus der sql-Datei, mit der die Tabelle erzeugt wurde. */
 static TABLEENTRY s_table[] =
 {
    { "name"         , "varchar(80)", 1 },
@@ -60,7 +61,7 @@ static void usage( void )
 }
 
 
-static print_error( MYSQL * conn, char * txt1, char * txt2 )
+static void print_error( MYSQL * conn, char * txt1, char * txt2 )
 {
    fprintf( stderr, "ERROR: %s %s\n", txt1, txt2 );
    if( conn )
@@ -101,37 +102,7 @@ MYSQL * conn;
 }
 
 
-static void insertstrings( char * query, char * pattern, char mark, int num, char * par[], unsigned char * isstring )
-{
-char * dst;
-char * pat;
-int i;
-
-   dst = strchr( query, mark );
-   pat = strchr( pattern, mark );
-   if( !dst || !pat )
-   {
-      print_error( 0, "internal error", "wrong insert pattern" );
-      return;
-   }
-
-   for( i = 0; i < num; i++ )
-   {
-      if( isstring && isstring[i] )
-         *dst++ = QUERY_STRING_DELIM;
-      strcpy( dst, par[2*i] );
-      dst += strlen(par[2*i]);
-      if( isstring && isstring[i] )
-         *dst++ = QUERY_STRING_DELIM;
-      *dst++ = QUERY_PAR_DELIM;
-   }
-   dst--;
-   pat++;
-   strcpy( dst, pat );
-}
-
-
-static TABLEENTRY * gettabletypes( char * table )
+static TABLEENTRY * gettabledefinition( char * table )
 {
    return s_table; // spaeter aus db oder  db_table.sql
 }
@@ -153,45 +124,110 @@ TABLEENTRY * pt;
 }
 
 
-static void insert( MYSQL * conn, char * table, int numofpairs, char * par[] )
+static char ** propertyarray( char * table, int * pnum )
+{
+   int num, n;
+   TABLEENTRY * pt;
+   TABLEENTRY * qt;
+   char ** prop;
+
+   qt = gettabledefinition( table );
+   // Anzahl bestimmen
+   num = 0;
+   pt = qt;
+   while( pt->name )
+   {
+      num++;
+      pt++;
+   }
+   // property array
+   prop = salloc(num*sizeof(char *));
+   n = 0;
+   pt = qt;
+   while( pt->name )
+   {
+      prop[n] = pt->name;
+      n++;
+      pt++;
+   }
+   if( pnum )
+      *pnum = num;
+   return prop;
+}
+
+
+static void insertstrings( char * query, char * pattern, char mark, int num, char * par[], bool isstring[] )
+{
+char * dst;
+char * pat;
+int i;
+
+   dst = strchr( query, mark );
+   pat = strchr( pattern, mark );
+   if( !dst || !pat )
+      return; // nothing to do
+
+   for( i = 0; i < num; i++ )
+   {
+      if( isstring && isstring[i] )
+         *dst++ = QUERY_STRING_DELIM;
+      strcpy( dst, par[i] );
+      dst += strlen(par[i]);
+      if( isstring && isstring[i] )
+         *dst++ = QUERY_STRING_DELIM;
+      *dst++ = QUERY_PAR_DELIM;
+   }
+   dst--;
+   pat++;
+   strcpy( dst, pat );
+}
+
+
+static char * buildquery( char * pattern, char * table, TABLEENTRY * tabdef, int num, char * prop[], char * val[] )
 {
    int i, qlen;
+   char * patt2; // pattern w table
    char * query;
-   char * prop;
-   char * val;
-   TABLEENTRY * tabletype;
-   unsigned char * isstring; // array: 1 element per property
+   bool * stringpar;
+
+   qlen  = strlen(pattern) + strlen(table) + 1;
+   patt2 = salloc(qlen+1);
+   sprintf( patt2, pattern, table );
+
+   for( i = 0; i < num; i++ )
+      qlen += strlen(prop[i]) + 1; // 1 for ,
+
+   if(val)
+   {
+      for( i = 0; i < num; i++ )
+         qlen += strlen(val[i]) + 3; // 3 for ,''
+   }
+
+   query = salloc(qlen+1);
+   strcpy(query,patt2);
+   insertstrings( query, patt2, '!', num, prop, 0 );
+   if( val )
+   {
+      stringpar = salloc( num * sizeof(bool) );
+      for( i = 0; i < num; i++ )
+         stringpar[i] = typeisstring( prop[i], tabdef );
+      insertstrings( query, patt2, '?', num, val, stringpar );
+      sfree(stringpar);
+   }
+   printf( "dbclient query: %s\n", query );;;
+   sfree( patt2 );
+   return query;
+}
+
+
+static void insert( MYSQL * conn, char * table, int numofpairs, char * prop[], char * val[] )
+{
+   char * query;
+   TABLEENTRY * tabdef;
    static char pattern[] = "insert into %s (!) values (?);"; // %s = table, ! = properties, ? = values
 
-   // Wir brauchen die Typen der Properties
-   tabletype = gettabletypes( table );
-   isstring = malloc(numofpairs);
-   if( !isstring )
-   {
-      print_error( 0, "not enough memory for type info", "" );
-      return;
-   }
-   for( i = 0; i < numofpairs; i++ )
-      isstring[i] = typeisstring( par[2*i], tabletype );
-
-   // Gesamt-Stringlaenge bestimmen
-   qlen = strlen(pattern) + strlen(table) + 1;
-   for( i = 0; i < numofpairs; i++ )
-      qlen += strlen(par[2*i]) + strlen(par[2*i+1]) + 4; // 4 for ,,''
-
-   // query bauen
-   query = malloc(qlen);
-   if( !query )
-   {
-      print_error( 0, "not enough memory for query", pattern );
-      return;
-   }
-   sprintf( query, pattern, table );
-   insertstrings( query, pattern, '!', numofpairs, par  , 0        ); // properties
-   insertstrings( query, pattern, '?', numofpairs, par+1, isstring ); // values, type info benutzen
-   printf( "dbclient query: %s\n", query );
-
-   // zur Datenbank
+   tabdef = gettabledefinition( table );
+   query  = buildquery( pattern, table, tabdef, numofpairs, prop, val );
    if( mysql_query( conn, query ) != 0 )
    {
       print_error( conn, "cannot insert", query );
@@ -202,65 +238,45 @@ static void insert( MYSQL * conn, char * table, int numofpairs, char * par[] )
       n = (unsigned long)mysql_affected_rows(conn);
       printf( "dbclient: %lu affected row%s\n", n, n == 1 ? "" : "s" );
    }
-   free( query );
+   sfree( query );
+}
+
+
+static void insert2( MYSQL * conn, char * table, int numofpairs, char * par[] )
+{
+   /* nur Umsortieren der Parameter:
+     par[0] -> prop[0]
+     par[1] -> val[0]
+     ...
+   */
+   int i;
+   char ** prop;
+   char ** val;
+
+   prop = par;
+   val = salloc( numofpairs * sizeof(char*) );
+   for( i = 0; i < numofpairs; i++ )
+   {
+      prop[i] = par[2*i];
+      val [i] = par[2*i+1];
+   }
+
+   insert( conn, table, numofpairs, prop, val );
+   sfree( val );
 }
 
 
 static void dump( MYSQL * conn, char * table )
 {
-   int i, num, qlen;
    char * query;
-   char * patt2;
-   TABLEENTRY * pt;
    char ** prop;
+   int i, num;
    MYSQL_RES * result;
    MYSQL_ROW   row;
    static char pattern[] = "select ! from %s;"; // %s = table, ! = properties
 
-   // Gesamt-Stringlaenge bestimmen
-   qlen = strlen(pattern) + strlen(table) + 1;
-   num = 0;
-   pt = gettabletypes( table );
-   while( pt->name )
-   {
-      qlen += strlen( pt->name ) + 1; // 1 for ,
-      num++;
-      pt++;
-   }
-   // property array
-   prop = malloc(2*num*sizeof(char *));
-   if( !prop )
-   {
-      print_error( 0, "not enough memory for property array", table );
-      return;
-   }
-   num = 0;
-   pt = gettabletypes( table );
-   while( pt->name )
-   {
-      prop[2*num] = pt->name;
-      num++;
-      pt++;
-   }
-
-   // query bauen
-   query = malloc(qlen);
-   if( !query )
-   {
-      print_error( 0, "not enough memory for query", pattern );
-      return;
-   }
-   sprintf( query, pattern, table );
-   patt2 = malloc(strlen(query)+1);
-   if( !patt2 )
-   {
-      print_error( 0, "not enough memory for pattern copy", query );
-      return;
-   }
-   patt2 = strcpy( patt2, query );
-
-   insertstrings( query, patt2, '!', num, prop, 0 );
-   printf( "dbclient query: %s\n", query );
+   prop = propertyarray( table, &num );
+   query = buildquery( pattern, table, 0, num, prop, 0 );
 
    // zur Datenbank
    if( mysql_query( conn, query ) != 0 )
@@ -288,8 +304,9 @@ static void dump( MYSQL * conn, char * table )
          print_error( conn, "cannot store result", query );
       }
    }
-   free(prop);
-   free(query);
+
+   sfree( query );
+   sfree(prop);
 }
 
 
@@ -312,7 +329,7 @@ MYSQL * conn;
          usage();
       if( argc % 2 != 1 )
          usage();
-      insert( conn, argv[2], (argc-3)/2, argv+3 );
+      insert2( conn, argv[2], (argc-3)/2, argv+3 );
       break;
    case 'c':
       print_error( 0, "not implemented, yet", "-c" );
