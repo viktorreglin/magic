@@ -291,7 +291,7 @@ static void dump( MYSQL * conn, char * table )
 {
    char * query;
    char ** prop;
-   int i, num;
+   int i, num, r, nfields;
    MYSQL_RES * result;
    MYSQL_ROW   row;
    static char pattern[] = "select ! from %s;"; // %s = table, ! = properties
@@ -309,15 +309,21 @@ static void dump( MYSQL * conn, char * table )
       result = mysql_store_result(conn);
       if( result )
       {
+         nfields = mysql_num_fields(result);
+         if( nfields != num )
+         {
+            fprintf( stderr, "WARNING: %d properties but %d fields (should be equal)", num, nfields );
+         }
+         r = 1;
          while( (row = mysql_fetch_row(result)) != NULL )
          {
-            for( i = 0; i < mysql_num_fields(result); i++ )
+            printf( "===== row %d:\n", r );
+            for( i = 0; i < nfields; i++ )
             {
-               printf( "%s\t", row[i] );
+               printf( "   %s = '%s'\n", i < num ? prop[i] : "?", row[i] ? row[i] : "" );
             }
-            printf("\n");
+            r++;
          }
-
          mysql_free_result(result);
       }
       else
