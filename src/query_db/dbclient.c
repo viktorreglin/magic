@@ -56,6 +56,7 @@ static void usage( void )
    fprintf( stderr, "                -r  remove data\n" );
    fprintf( stderr, "                -d  dump data\n" );
    fprintf( stderr, "       dbclient -i table property value property value ...\n" );
+   fprintf( stderr, "       dbclient -r table property value\n" );
    fprintf( stderr, "       dbclient -d table\n" );
    exit( 2 );
 }
@@ -287,6 +288,28 @@ static void insert2( MYSQL * conn, char * table, int numofpairs, char * par[] )
 }
 
 
+static void removeq( MYSQL * conn, char * table, char * prop, char * val )
+{
+   char * query;
+   TABLEENTRY * tabdef;
+   static char pattern[] = "delete from %s where ! = ?;"; // %s = table, ! = property, ? = value
+
+   tabdef = gettabledefinition( table );
+   query  = buildquery( pattern, table, tabdef, 1, &prop, &val );
+   if( mysql_query( conn, query ) != 0 )
+   {
+      print_error( conn, "cannot remove", query );
+   }
+   else
+   {
+      unsigned long n;
+      n = (unsigned long)mysql_affected_rows(conn);
+      printf( "dbclient: %lu affected row%s\n", n, n == 1 ? "" : "s" );
+   }
+   sfree( query );
+}
+
+
 static void dump( MYSQL * conn, char * table )
 {
    char * query;
@@ -362,7 +385,9 @@ MYSQL * conn;
       print_error( 0, "not implemented, yet", "-c" );
       break;
    case 'r':
-      print_error( 0, "not implemented, yet", "-r" );
+      if( argc != 5 )
+         usage();
+      removeq( conn, argv[2], argv[3], argv[4] );
       break;
    case 'd':
       if( argc != 3 )
