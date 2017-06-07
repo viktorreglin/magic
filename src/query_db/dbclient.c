@@ -52,7 +52,6 @@ static void usage( void )
 {
    fprintf( stderr, "usage: dbclient option [parameters]\n" );
    fprintf( stderr, "       options: -i  insert data\n" );
-   fprintf( stderr, "                -c  change data\n" );
    fprintf( stderr, "                -r  remove data\n" );
    fprintf( stderr, "                -d  dump data\n" );
    fprintf( stderr, "       dbclient -i table property value property value ...\n" );
@@ -380,9 +379,6 @@ MYSQL * conn;
       if( argc % 2 != 1 )
          usage();
       insert2( conn, argv[2], (argc-3)/2, argv+3 );
-      break;
-   case 'c':
-      print_error( 0, "not implemented, yet", "-c" );
       break;
    case 'r':
       if( argc != 5 )
