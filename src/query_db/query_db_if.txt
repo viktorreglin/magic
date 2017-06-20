@@ -27,9 +27,9 @@ qdb_create Name Tabellendefinition
    ...
 
    Es können mehrere Tabellen angegeben werden. Die erste ist die, nach deren Elementen primäre gefragt wird,
-   es ollte also die mit den Karten sein (die zweite normalerweise: Edition).
+   es sollte also die mit den Karten sein (die zweite normalerweise: Edition).
    Eigenschaft ist ein Name, der nachher in Abfragen verwendet werden kann. Als Typen sind erlaubt:
-    int, string, string(Maximallaenge), color, mana, ident
+    int, string, string(laenge), color, mana, ident
     color, mana und ident sind Magic-spezifische Datentypen, sie werden unten beschrieben (s. 3. Abfragesprache).
    Wenn in den Tabellendefinitionen Eigenschaften fehlen, dann macht das nichts. Weitere Eigenschaften werden automatisch definiert, sobald sie beim Eintragen von Daten benutzt werden, immer mit dem Typ string.
 
@@ -69,7 +69,16 @@ qdb_types Name Tabellendefinition
    qdb_delete(dh,Tabellenname,Query)
 
 3. Abfragesprache
- Typen
-  t.b.d.
+ Die Sprache ist näher am Benutzer (also näher an Magic) als SQL, aber leicht in SQL zu übersetzen.
+
+ Typen        --> SQL-Typ
+  int              INT
+  string           VARCHAR(1024)   CHARACTER SET utf8
+  string(laenge)   VARCHAR(laenge) CHARACTER SET utf8
+  ident            BINARY(20)
+  color            SET ('White', 'Red', 'Green', 'Blue', 'Black')
+  mana             VARCHAR(24)
+  date             DATETIME
+
  Syntax
   t.b.d.
