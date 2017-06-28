@@ -1,16 +1,19 @@
 
-CFLAGS=-g -c -Wall -I../util -I/usr/include/mysql
+CFLAGS=-g -c -Wall -I../util -I/usr/include/mysql -DLINUX
 LFLAGS=-g -lmysqlclient
 
 CCR= gcc $(CFLAGS) -o$@ $<
-LINK=gcc $(LFLAGS)
+LINK=gcc $(LFLAGS) -o$@ $^
 
 # goals
-all: dbclient
+all: qdb_create dbclient
 
 # link
+qdb_create: obj/qdb_create.o obj/qdb.o obj/salloc.o obj/str.o obj/asprintf.o
+	$(LINK)
+
 dbclient: obj/dbclient.o obj/salloc.o
-	$(LINK) -o$@ $^
+	$(LINK)
 
 # compile
 obj/%.o : %.c
@@ -24,15 +27,12 @@ clean:
 	-rm -f -r obj
 
 
-# automatic dependency generation
-# can use wildcards for all existing C files
-# add generated files explicitely
-#ifneq ($(MAKECMDGOALS),clean)
-#$(OBJDIR)/depend.mk: src/*.c  src/xbnfparse.c
-#	touch $@
-#	makedepend -f$@ -p$(OBJDIR)/ -Y $(CFLAGS) $^
+# automatic include dependencies:
+obj/%.d: %.c
+	gcc -M $(CFLAGS) $< > $@.x
+	sed 's,\($*\)\.o[ :]*,obj/\1.o $@ : ,g' < $@.x > $@
+	rm -f $@.x
 
-#-include $(OBJDIR)/depend.mk
-#endif
-# # #
-
+ifneq ($(MAKECMDGOALS),clean)
+include $(patsubst %.c,obj/%.d,$(wildcard *.c))
+endif
