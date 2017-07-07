@@ -26,6 +26,11 @@ qdb_create Name Tabellendefinition
    endttable
    ...
 
+   Eine Eigenschaft muss mit einem * versehen sein = Primärschlüssel:
+    *Eigenschaft Typ
+   Ein Fremdschlüssel wird mit einem + gekennzeichnet und sieht so aus:
+    +Eigenschaft Table(Eigenschaft)
+
    Es können mehrere Tabellen angegeben werden. Die erste ist die, nach deren Elementen primäre gefragt wird,
    es sollte also die mit den Karten sein (die zweite normalerweise: Edition).
    Eigenschaft ist ein Name, der nachher in Abfragen verwendet werden kann. Als Typen sind erlaubt:
@@ -72,6 +77,7 @@ qdb_types Name Tabellendefinition
  Die Sprache ist näher am Benutzer (also näher an Magic) als SQL, aber leicht in SQL zu übersetzen.
 
  Typen        --> SQL-Typ
+  bool             TINYINT
   int              INT
   string           VARCHAR(1024)   CHARACTER SET utf8
   string(laenge)   VARCHAR(laenge) CHARACTER SET utf8
