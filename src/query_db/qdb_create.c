@@ -11,6 +11,9 @@
 
 #include "qdb.h"
 
+#define MAXLINELENGTH 4000
+
+typedef enum { key_none, key_primary, key_foreign } KEYTYPE;
 
 
 static void usage( void )
@@ -27,10 +30,93 @@ static void cantopen( char * fname )
 }
 
 
+char * trimline( char * line )
+{
+   char * beg;
+   char * end;
+
+   beg = line;
+   while( (*beg == ' ') || (*beg == '\t') )
+      beg++;
+
+   end = line + strlen(line) - 1;
+   while( (end >= beg) && ((*end == '\n') || (*end == '\r') || (*end == ' ') || (*end == '\t')) )
+      end--;
+   end++;
+   *end = 0;
+
+   return beg;
+}
+
+
+static void processline( int lineno, char * line, FILE * sqlfile )
+{
+   char * word;
+   char * mtyp;
+   char * sqltyp;
+   KEYTYPE kt;
+
+   line = trimline(line);
+
+   if( *line == 0 )
+      return; // leere Zeile
+
+   printf( "line %d: %s\n", lineno, line );;;
+
+   if( *line == '#' )
+      return; // Kommentar
+
+   word = strtok( line, " \t" );
+   if( strcmp(word,"table") == 0 )
+   {
+      word = strtok( 0, " \t" );
+      fprintf( sqlfile, "create table %s\n(\n", word );
+   }
+   else if( strcmp(word,"endtable") == 0 )
+   {
+      fprintf( sqlfile, ");\n" );
+   }
+   else
+   {
+      if( *word == '*' )
+      {
+         kt = key_primary;
+         word++;
+      }
+      else if( *word == '+' )
+      {
+         kt = key_foreign;
+         word++;
+      }
+      else
+      {
+         kt = key_none;
+      }
+      mtyp = strtok( 0, " \t" );
+      if( !mtyp )
+      {
+         printf( "ERROR in line %d: type missing after %s", lineno, word );
+         return;
+      }
+      sqltyp = sql_type(mtyp);
+      if( !sqltyp )
+      {
+         printf( "ERROR in line %d: cannot determine sql type of %s", lineno, mtyp );
+         return;
+      }
+      fprintf( sqlfile, "  %s    %s,\n", word, sqltyp );
+   }
+}
+
+
 static void makesqlfile( char * tablefilename, char * sqlfilename )
 {
    FILE * tablefile;
    FILE * sqlfile;
+   int lineno;
+   char line[MAXLINELENGTH+2];
+
+   printf( "tablefile=%s  sqlfile=%s\n", tablefilename, sqlfilename );;;
 
    tablefile = fopen( tablefilename, "r" );
    if( !tablefile )
@@ -40,6 +126,12 @@ static void makesqlfile( char * tablefilename, char * sqlfilename )
    if( !sqlfile )
       cantopen( sqlfilename );
 
+   lineno = 1;
+   while( fgets( line, sizeof(line), tablefile) )
+   {
+      processline( lineno, line, sqlfile );
+      lineno++;
+   }
 
    fclose( sqlfile );
 }
@@ -47,6 +139,8 @@ static void makesqlfile( char * tablefilename, char * sqlfilename )
 
 static int makedb( char * name, char * sqlfilename )
 {
+   printf( "dbname=%s  sqlfile=%s\n", name, sqlfilename );;;
+
    return 0;
 }
 
@@ -61,10 +155,11 @@ int main( int argc, char * argv[] )
       usage();
 
    tablefilename = argv[2];
-   sqlfilename   = asprintf( "%.s.sql", tablefilename );
+   sqlfilename   = asprintf( "%s.sql", tablefilename );
 
    makesqlfile( tablefilename, sqlfilename );
    rc = makedb( argv[1], sqlfilename );
 
    return rc;
 }
+

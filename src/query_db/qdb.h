@@ -20,4 +20,7 @@ static TYPEMAPPING typemapping[] =
 
 // parameter = %X, X = 1 char
 
+char * sql_type( char * magic_type );
+
+
 #endif // _QDB_H_

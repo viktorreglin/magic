@@ -23,7 +23,7 @@ table Card
    pricecent            int
    datadate             date
    pricedate            date
-endttable
+endtable
 
 table Edition
    name                 string(40)
@@ -34,6 +34,6 @@ table Edition
    border               string(10)
    type                 string(20)
    booster              string(100)
-   mkm_name:            string(20)
+   mkm_name             string(20)
    mkm_id               int
-endttable
+endtable

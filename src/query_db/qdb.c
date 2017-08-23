@@ -34,7 +34,7 @@ static bool match( char * srctype, char * typepattern, STR * pparam1 )
       if( mtch && pparam1 )
       {
          (*pparam1).ptr = src1.ptr + src1.len;
-         (*pparam1).len = src2.ptr - src1.ptr;
+         (*pparam1).len = src2.ptr - (*pparam1).ptr;
       }
       return mtch;
    }
@@ -49,6 +49,7 @@ static char * format( char * typepattern, STR param1 )
 {
    char * parptr;
    char * str;
+   char * s;
    int len1;
 
    if( !typepattern )
@@ -62,12 +63,13 @@ static char * format( char * typepattern, STR param1 )
       return typepattern;
 
    str = salloc( strlen(typepattern) + param1.len );
+   s = str;
    len1 = parptr - typepattern;
-   memcpy( str, typepattern, len1 );
-   str += len1;
-   memcpy( str, param1.ptr, param1.len );
-   str += param1.len;
-   strcpy( str, parptr+2 ); // %X
+   memcpy( s, typepattern, len1 );
+   s += len1;
+   memcpy( s, param1.ptr, param1.len );
+   s += param1.len;
+   strcpy( s, parptr+2 ); // %X
 
    return str;
 }
