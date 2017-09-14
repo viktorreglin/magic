@@ -3,7 +3,7 @@
 #include <string.h>
 
 #include "asprintf.h"
-//#include "bool.h"
+#include "bool.h"
 //#include "macros.h"
 //#include "port.h"
 //#include "salloc.h"
@@ -49,7 +49,7 @@ char * trimline( char * line )
 }
 
 
-static void processline( int lineno, char * line, FILE * sqlfile )
+static void processline( int lineno, char * line, FILE * sqlfile, bool * firstelem )
 {
    char * word;
    char * mtyp;
@@ -61,7 +61,7 @@ static void processline( int lineno, char * line, FILE * sqlfile )
    if( *line == 0 )
       return; // leere Zeile
 
-   printf( "line %d: %s\n", lineno, line );;;
+   //printf( "line %d: %s\n", lineno, line );;;
 
    if( *line == '#' )
       return; // Kommentar
@@ -70,11 +70,13 @@ static void processline( int lineno, char * line, FILE * sqlfile )
    if( strcmp(word,"table") == 0 )
    {
       word = strtok( 0, " \t" );
-      fprintf( sqlfile, "create table %s\n(\n", word );
+      fprintf( sqlfile, "create table %s\n(", word );
+      *firstelem = true;
    }
    else if( strcmp(word,"endtable") == 0 )
    {
-      fprintf( sqlfile, ");\n" );
+      fprintf( sqlfile, "\n);\n\n" );
+      *firstelem = false;
    }
    else
    {
@@ -104,7 +106,10 @@ static void processline( int lineno, char * line, FILE * sqlfile )
          printf( "ERROR in line %d: cannot determine sql type of %s", lineno, mtyp );
          return;
       }
-      fprintf( sqlfile, "  %s    %s,\n", word, sqltyp );
+      fprintf( sqlfile, "%s\n  %s    %s", *firstelem ? "" : "," , word, sqltyp );
+      if( kt == key_primary )
+         fprintf( sqlfile, ",  constraint _%s pimary key (%s)", word, word );
+      *firstelem = false;
    }
 }
 
@@ -113,6 +118,7 @@ static void makesqlfile( char * tablefilename, char * sqlfilename )
 {
    FILE * tablefile;
    FILE * sqlfile;
+   bool firstelem;
    int lineno;
    char line[MAXLINELENGTH+2];
 
@@ -129,7 +135,7 @@ static void makesqlfile( char * tablefilename, char * sqlfilename )
    lineno = 1;
    while( fgets( line, sizeof(line), tablefile) )
    {
-      processline( lineno, line, sqlfile );
+      processline( lineno, line, sqlfile, &firstelem );
       lineno++;
    }
 
