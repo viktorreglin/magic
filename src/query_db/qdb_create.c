@@ -87,8 +87,25 @@ static void processline( int lineno, char * line, FILE * sqlfile, bool * firstel
       }
       else if( *word == '+' )
       {
+         char * primtable;
+         char * elemname;
          kt = key_foreign;
          word++;
+         primtable = strtok( 0, " \t(" );
+         if( !primtable )
+         {
+            printf( "ERROR in line %d: table name missing after %s", lineno, word );
+            return;
+         }
+         elemname = strtok( 0, " \t)" );
+         if( !elemname )
+         {
+            printf( "ERROR in line %d: element name missing after %s", lineno, primtable );
+            return;
+         }
+         fprintf( sqlfile, "%s\n  constraint _%-8s  foreign key key (%s) references %s (%s)", *firstelem ? "" : ",", word, elemname, primtable, elemname );
+         *firstelem = false;
+         return;
       }
       else
       {
@@ -106,9 +123,9 @@ static void processline( int lineno, char * line, FILE * sqlfile, bool * firstel
          printf( "ERROR in line %d: cannot determine sql type of %s", lineno, mtyp );
          return;
       }
-      fprintf( sqlfile, "%s\n  %s    %s", *firstelem ? "" : "," , word, sqltyp );
+      fprintf( sqlfile, "%s\n  %-20s  %s", *firstelem ? "" : "," , word, sqltyp );
       if( kt == key_primary )
-         fprintf( sqlfile, ",  constraint _%s pimary key (%s)", word, word );
+         fprintf( sqlfile, ",\n  constraint _%-8s  pimary key (%s)", word, word );
       *firstelem = false;
    }
 }
