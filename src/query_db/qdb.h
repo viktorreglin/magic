@@ -7,6 +7,7 @@ typedef struct
    char * sqltype;
 } TYPEMAPPING;
 
+#ifdef TYPEMAPPING_DEFINITION
 static TYPEMAPPING typemapping[] =
 {
    { "int"        , "int"                                           },
@@ -17,8 +18,8 @@ static TYPEMAPPING typemapping[] =
    { "mana"       , "varchar(24)"                                   },
    { "date"       , "datetime"                                      },
 };
-
 // parameter = %X, X = 1 char
+#endif
 
 char * sql_type( char * magic_type );
 

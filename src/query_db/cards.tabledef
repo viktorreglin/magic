@@ -1,5 +1,18 @@
 # Magic table definition
 
+table Edition
+   name                 string(40)
+  *code                 string(10)
+   gathererCode         string(10)
+   magicCardsInfoCode   string(10)
+   releaseDate          date
+   border               string(10)
+   type                 string(20)
+   booster              string(100)
+   mkm_name             string(20)
+   mkm_id               int
+endtable
+
 table Card
    artist               string(40)
    cmc                  int
@@ -19,21 +32,8 @@ table Card
    type                 string(20)
    types                string(40)
    variations           string(40)
-  +edition_code         Edition(code)
+  +edition_code         string(10) Edition(code)
    pricecent            int
    datadate             date
    pricedate            date
-endtable
-
-table Edition
-   name                 string(40)
-  *code                 string(10)
-   gathererCode         string(10)
-   magicCardsInfoCode   string(10)
-   releaseDate          date
-   border               string(10)
-   type                 string(20)
-   booster              string(100)
-   mkm_name             string(20)
-   mkm_id               int
 endtable

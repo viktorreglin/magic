@@ -1,0 +1,24 @@
+if [ "$1" == "" ]; then
+   mysql -e "show databases;"
+   echo "to see details use: qdb_show DBName"
+   exit
+fi
+
+mysql $1 -e "show tables;"
+if [ $? -ne 0 ]; then
+   exit
+fi
+
+mysql $1 -e "show tables;" | grep -v Tables_in_ > _tables.txt
+
+echo 'echo $2' > _tables.1
+echo 'mysql $1 -e "desc $2;"' >> _tables.1
+chmod +x _tables.1
+
+rm -f _tables.sh
+touch _tables.sh
+sed -e "s|^|./_tables.1 $1 |" _tables.txt >> _tables.sh
+
+. _tables.sh
+
+rm _tables.*

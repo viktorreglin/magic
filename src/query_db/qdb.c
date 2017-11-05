@@ -6,7 +6,9 @@
 #include "salloc.h"
 #include "str.h"
 
+#define TYPEMAPPING_DEFINITION
 #include "qdb.h"
+
 
 static bool match( char * srctype, char * typepattern, STR * pparam1 )
 {

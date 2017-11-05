@@ -15,9 +15,9 @@ Der lokale mysql-Server muss laufen, der aktuelle User muss ihn benutzen dürfen
 
 1. ausführbare Programme
 
-qdb_create Name Tabellendefinition
-   erzeugt die Datenbank 'Name' mit den Tabellen, die im angegebenen File beschrieben sind.
-   Tabellendefinition ist ein zeilenorientiertes Textfile und haben folgenden Aufbau:
+qdb_create DBName Tabellendefinition
+   erzeugt die Datenbank 'DBName' mit den Tabellen, die im angegebenen File beschrieben sind:
+   Tabellendefinition ist ein zeilenorientiertes Textfile und hat folgenden Aufbau:
 
    table Tabellename
     Eigenschaft Typ
@@ -28,23 +28,34 @@ qdb_create Name Tabellendefinition
 
    Eine Eigenschaft muss mit einem * versehen sein = Primärschlüssel:
     *Eigenschaft Typ
+    Eigenschaft muss eindeutig in der Tabelle sein.
    Ein Fremdschlüssel wird mit einem + gekennzeichnet und sieht so aus:
-    +Eigenschaft Table(Eigenschaft)
+    +Eigenschaft Typ Table2(Eigenschaft2)
+    Eigenschaft wird auf die Werte von Eigenschaft2 in Table2 eingeschränkt.
+    Eigenschaft2 muss Primärschlüssel in Table2 sein.
+    Table2 muss vorher definiert worden sein !
 
-   Es können mehrere Tabellen angegeben werden. Die erste ist die, nach deren Elementen primäre gefragt wird,
-   es sollte also die mit den Karten sein (die zweite normalerweise: Edition).
+
+   Es können mehrere Tabellen angegeben werden.
+   Beachte, dass Fremdschlüssel nur rückwärts verweisen können.
+   (Also normalerweise erst Edition, dann Card definieren.)
+
    Eigenschaft ist ein Name, der nachher in Abfragen verwendet werden kann. Als Typen sind erlaubt:
     int, string, string(laenge), color, mana, ident
     color, mana und ident sind Magic-spezifische Datentypen, sie werden unten beschrieben (s. 3. Abfragesprache).
-   Wenn in den Tabellendefinitionen Eigenschaften fehlen, dann macht das nichts. Weitere Eigenschaften werden automatisch definiert, sobald sie beim Eintragen von Daten benutzt werden, immer mit dem Typ string.
+   Wenn in den Tabellendefinitionen Eigenschaften fehlen, dann macht das nichts. Weitere Eigenschaften werden
+   automatisch definiert, sobald sie beim Eintragen von Daten benutzt werden, dann immer mit dem Typ string.
 
 
-qdb_delete Name
-   löscht die angegebene Datenbank.
+qdb_show
+   listet die vorhandenen Datenbanken.
 
+qdb_show DBName
+   zeigt den Aufbau der angegebene Datenbank.
 
-qdb_types Name Tabellendefinition
-   fragt die Datenbank 'Name' nach ihren Tabellen und erzeugt Tabellendefinition im obigen Format.
+qdb_delete DBName
+   löscht die angegebene Datenbank (Achtung: Lösche nur selbst erzeugte Datenbanken !)
+
 
 
 2. Bibliothek

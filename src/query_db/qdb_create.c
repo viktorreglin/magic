@@ -18,15 +18,15 @@ typedef enum { key_none, key_primary, key_foreign } KEYTYPE;
 
 static void usage( void )
 {
-   printf( "USAGE: qdb_create Name TableDefinitionFile\n" );
-   exit( 1 );
+   printf( "USAGE: qdb_create DBName TableDefinitionFile\n" );
+   exit(1);
 }
 
 
 static void cantopen( char * fname )
 {
    printf( "FATAL: cannot open '%s'\n", fname );
-   exit( 2 );
+   exit(2);
 }
 
 
@@ -49,9 +49,11 @@ char * trimline( char * line )
 }
 
 
-static void processline( int lineno, char * line, FILE * sqlfile, bool * firstelem )
+static int processline( int lineno, char * line, FILE * sqlfile, bool * firstelem )
+// returns 0 iff ok, 1 iff error
 {
    char * word;
+   char * elem;
    char * mtyp;
    char * sqltyp;
    KEYTYPE kt;
@@ -59,12 +61,12 @@ static void processline( int lineno, char * line, FILE * sqlfile, bool * firstel
    line = trimline(line);
 
    if( *line == 0 )
-      return; // leere Zeile
+      return 0; // leere Zeile
 
    //printf( "line %d: %s\n", lineno, line );;;
 
    if( *line == '#' )
-      return; // Kommentar
+      return 0; // Kommentar
 
    word = strtok( line, " \t" );
    if( strcmp(word,"table") == 0 )
@@ -87,25 +89,8 @@ static void processline( int lineno, char * line, FILE * sqlfile, bool * firstel
       }
       else if( *word == '+' )
       {
-         char * primtable;
-         char * elemname;
          kt = key_foreign;
          word++;
-         primtable = strtok( 0, " \t(" );
-         if( !primtable )
-         {
-            printf( "ERROR in line %d: table name missing after %s", lineno, word );
-            return;
-         }
-         elemname = strtok( 0, " \t)" );
-         if( !elemname )
-         {
-            printf( "ERROR in line %d: element name missing after %s", lineno, primtable );
-            return;
-         }
-         fprintf( sqlfile, "%s\n  constraint _%-8s  foreign key key (%s) references %s (%s)", *firstelem ? "" : ",", word, elemname, primtable, elemname );
-         *firstelem = false;
-         return;
       }
       else
       {
@@ -115,31 +100,55 @@ static void processline( int lineno, char * line, FILE * sqlfile, bool * firstel
       if( !mtyp )
       {
          printf( "ERROR in line %d: type missing after %s", lineno, word );
-         return;
+         return 1;
       }
       sqltyp = sql_type(mtyp);
       if( !sqltyp )
       {
          printf( "ERROR in line %d: cannot determine sql type of %s", lineno, mtyp );
-         return;
+         return 1;
       }
-      fprintf( sqlfile, "%s\n  %-20s  %s", *firstelem ? "" : "," , word, sqltyp );
+      elem = word;
+      fprintf( sqlfile, "%s\n  %-20s  %s", *firstelem ? "" : "," , elem, sqltyp );
       if( kt == key_primary )
-         fprintf( sqlfile, ",\n  constraint _%-8s  pimary key (%s)", word, word );
+      {
+         fprintf( sqlfile, ",\n  primary key (%s)", elem );
+      }
+      else if( kt == key_foreign )
+      {
+         char * table2;
+         char * elem2;
+         word++;
+         table2 = strtok( 0, " \t(" );
+         if( !table2 )
+         {
+            printf( "ERROR in line %d: table name missing after %s", lineno, word );
+            return 1;
+         }
+         elem2 = strtok( 0, " \t)" );
+         if( !elem2 )
+         {
+            printf( "ERROR in line %d: element name missing after %s", lineno, table2 );
+            return 1;
+         }
+         fprintf( sqlfile, "%s\n  foreign key (%s) references %s (%s)", *firstelem ? "" : ",", elem, table2, elem2 );
+      }
       *firstelem = false;
    }
+   return 0;
 }
 
 
-static void makesqlfile( char * tablefilename, char * sqlfilename )
+static int makesqlfile( char * tablefilename, char * sqlfilename )
+// returns # of errors
 {
    FILE * tablefile;
    FILE * sqlfile;
    bool firstelem;
-   int lineno;
+   int lineno, errors;
    char line[MAXLINELENGTH+2];
 
-   printf( "tablefile=%s  sqlfile=%s\n", tablefilename, sqlfilename );;;
+   // printf( "tablefile=%s  sqlfile=%s\n", tablefilename, sqlfilename );;;
 
    tablefile = fopen( tablefilename, "r" );
    if( !tablefile )
@@ -150,21 +159,34 @@ static void makesqlfile( char * tablefilename, char * sqlfilename )
       cantopen( sqlfilename );
 
    lineno = 1;
+   errors = 0;
    while( fgets( line, sizeof(line), tablefile) )
    {
-      processline( lineno, line, sqlfile, &firstelem );
+      errors += processline( lineno, line, sqlfile, &firstelem );
       lineno++;
    }
 
    fclose( sqlfile );
+   return errors;
 }
 
 
 static int makedb( char * name, char * sqlfilename )
 {
-   printf( "dbname=%s  sqlfile=%s\n", name, sqlfilename );;;
+   int rc;
+   char cmd[1000];
 
-   return 0;
+   // erzeuge Datenbank
+   sprintf( cmd, "mysql -e \"create database %s;\"", name );
+   rc = system( cmd );
+   if( rc != 0 )
+      return rc;
+
+   // erzeuge Tabellen
+   sprintf( cmd, "mysql %s < %s", name, sqlfilename );
+   rc = system( cmd );
+
+   return rc;
 }
 
 
@@ -180,9 +202,20 @@ int main( int argc, char * argv[] )
    tablefilename = argv[2];
    sqlfilename   = asprintf( "%s.sql", tablefilename );
 
-   makesqlfile( tablefilename, sqlfilename );
-   rc = makedb( argv[1], sqlfilename );
+   rc = makesqlfile( tablefilename, sqlfilename );
+   if( rc != 0 )
+   {
+      printf( "%d errors in %s, no database created\n", rc, tablefilename );
+      exit(3);
+   }
 
-   return rc;
+   rc = makedb( argv[1], sqlfilename );
+   if( rc != 0 )
+   {
+      printf( "no database created, rc=%d\n", rc );
+      exit(4);
+   }
+
+   exit(0);
 }
 
