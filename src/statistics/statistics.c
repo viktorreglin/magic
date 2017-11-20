@@ -10,6 +10,7 @@
 
 #include <stdio.h>
 #include <string.h>
+#include <stdlib.h>
 
 #define STRINGSIZE 10000
 #define FILENAME "../../test/sample.mc"
@@ -53,6 +54,19 @@ void rarity( char * rarity_string, int * rarity_counts ){
 }
 
 
+// Gibt von einer Karte die Typen zurück.
+void type( char * types_string, int * types_counts ){
+   char *types[7] = { "Artifact", "Creature", "Enchantment", "Instant", "Land", "Sorcery", "Planeswalker" };
+   int i;
+   
+   for( i = 0; i < ( sizeof( types ) / sizeof( types[0] ) ); i++ ){
+      if( strstr( types_string, types[i] ) ){
+         types_counts[i]++;
+      }
+   }
+}
+
+
 // Gibt das n-te Symbol einer Datei wieder.
 char char_n( FILE * fp, int n, char * buf ){
    fgets( buf, STRINGSIZE, fp );
@@ -89,9 +103,20 @@ int nth_delimiter( char * search_for, char * search_in, char delimiter ){
    char buf[STRINGSIZE];
    int pos;
    
-   pos = string_pos( search_for, search_in );
+   // search_for muss mit "|" anfangen, da sonst die Suche nach "types" auch bei "subtypes" Erfolg hätte.
+   long len = strlen( search_for );
+   int i;
+   char *search_for_pipe = malloc( len + 1 + 1 );
+   search_for_pipe[0] = delimiter;
+   for( i = 1; i < len + 1; i++ ){
+      search_for_pipe[i] = search_for[i-1];
+   }
+   search_for_pipe[i + 1] = '\0';
+   
+   // Eigentlicher Code. MUSS NOCH WIEDER EINS ABZIEHEN?
+   pos = string_pos( search_for_pipe, search_in );
    strncpy( buf, search_in, pos );
-   return occurence( delimiter, buf );
+   return occurence( delimiter, buf ) + 1;
 }
 
 
@@ -158,7 +183,22 @@ void rarities( FILE * fp, long filelength, int * rarity_counts, char card_row, c
       pos_in_file = row_num( fp, card_row, buf, pos_in_file ); // Packt die nächste C-Zeile in ein Array.
       nth_element( buf, delimiter, del_count, substring ); // Packt den Teilstring der Rarität in ein Array.
       
-      rarity( substring, rarity_counts ); // Zählt die Manasymbole pro Farbe.
+      rarity( substring, rarity_counts ); // Gibt die Rarität der Karte zurück.
+   }
+}
+
+
+// Füllt einen Array mit den Anzahlen der Kartentypen eines Decks.
+void types( FILE * fp, long filelength, int * types_counts, char card_row, char * buf, char * substring, char delimiter, int del_count ){
+   long  pos_in_file = 0;
+   int   i;
+
+   for(;;){
+      if( pos_in_file == filelength ) break; // Aufhören sobald das Ende der Datei erreicht wurde.
+      pos_in_file = row_num( fp, card_row, buf, pos_in_file ); // Packt die nächste C-Zeile in ein Array.
+      nth_element( buf, delimiter, del_count, substring ); // Packt den Teilstring der Rarität in ein Array.
+      
+      type( substring, types_counts ); // Gibt die Typen der Karte zurück.
    }
 }
 
@@ -169,6 +209,7 @@ void main(){
    int   del_count;
    int   symbol_counts[6] = { 0 }; // 6 Farben, inklusive "farblos".
    int   rarity_counts[6] = { 0 }; // 6 Raritäten: "Common", "Uncommon", "Rare", "Mythic Rare", "Special", "Basic Land"
+   int   types_counts[7] = { 0 }; // 7 Typen: "Artifact", "Creature", "Enchantment", "Instant", "Land", "Sorcery", "Planeswalker"
    int   i;
    
    char  header_row = 'H'; // Überschriften stehen in der Zeile, die mit H beginnt.
@@ -178,6 +219,7 @@ void main(){
    char  delimiter;
    char  *mana_heading = "manaCost";
    char  *rarity_heading = "rarity";
+   char  *types_heading = "types";
    
    FILE  *fp;
    long  length;
@@ -207,6 +249,18 @@ void main(){
    printf( "\nRarities:\n" );
    for( i = 0; i < ( sizeof( rarity_counts ) / sizeof( int ) ); i++ ){
       printf( " %d ", rarity_counts[i] );
+   }
+   printf( "\n" );
+   
+   
+   // Typen:
+   row_num( fp, header_row, buf, 0 ); // Setzt buf zurück auf die H-Zeile.
+   del_count = nth_delimiter( types_heading, buf, delimiter ); //Gibt an, das wievielte Element types ist.
+   types( fp, length, types_counts, card_row, buf, substring, delimiter, del_count );
+   
+   printf( "\nTypes:\n" );
+   for( i = 0; i < ( sizeof( types_counts ) / sizeof( int ) ); i++ ){
+      printf( " %d ", types_counts[i] );
    }
    printf( "\n" );
    
