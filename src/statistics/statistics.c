@@ -116,6 +116,7 @@ int nth_delimiter( char * search_for, char * search_in, char delimiter ){
    // Eigentlicher Code. MUSS NOCH WIEDER EINS ABZIEHEN?
    pos = string_pos( search_for_pipe, search_in );
    strncpy( buf, search_in, pos );
+   free(search_for_pipe);
    return occurence( delimiter, buf ) + 1;
 }
 
