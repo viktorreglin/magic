@@ -46,6 +46,8 @@ qdb_create DBName Tabellendefinition
    Wenn in den Tabellendefinitionen Eigenschaften fehlen, dann macht das nichts. Weitere Eigenschaften werden
    automatisch definiert, sobald sie beim Eintragen von Daten benutzt werden, dann immer mit dem Typ string.
 
+   Hinweis: qdb_create erzeugt als Nebeneffekt die Datei DBName.sql.
+
 
 qdb_show
    listet die vorhandenen Datenbanken.
@@ -56,6 +58,8 @@ qdb_show DBName
 qdb_delete DBName
    löscht die angegebene Datenbank (Achtung: Lösche nur selbst erzeugte Datenbanken !)
 
+qdb_dump DBName table
+   listet den Inhalt der angegebenen Tabelle
 
 
 2. Bibliothek

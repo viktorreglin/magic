@@ -4,10 +4,6 @@
 
 #include "asprintf.h"
 #include "bool.h"
-//#include "macros.h"
-//#include "port.h"
-//#include "salloc.h"
-//#include "str.h"
 
 #include "qdb.h"
 
@@ -192,6 +188,7 @@ static int makedb( char * name, char * sqlfilename )
 
 int main( int argc, char * argv[] )
 {
+   char * dbname;
    char * tablefilename;
    char * sqlfilename;
    int rc;
@@ -199,8 +196,9 @@ int main( int argc, char * argv[] )
    if( argc != 3 )
       usage();
 
+   dbname        = argv[1];
    tablefilename = argv[2];
-   sqlfilename   = asprintf( "%s.sql", tablefilename );
+   sqlfilename   = asprintf( "%s.sql", dbname );
 
    rc = makesqlfile( tablefilename, sqlfilename );
    if( rc != 0 )
@@ -209,7 +207,7 @@ int main( int argc, char * argv[] )
       exit(3);
    }
 
-   rc = makedb( argv[1], sqlfilename );
+   rc = makedb( dbname, sqlfilename );
    if( rc != 0 )
    {
       printf( "no database created, rc=%d\n", rc );

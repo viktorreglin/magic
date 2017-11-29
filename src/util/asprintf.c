@@ -28,3 +28,18 @@ int bytes;
    return newbuf;
 }
 
+
+char * astrcpy( char * str )
+{
+char * newbuf;
+int bytes;
+
+   if( !str )
+      str = "";
+
+   bytes = strlen(str);
+   newbuf = salloc( bytes + 1 );
+   strcpy( newbuf, str );
+   return newbuf;
+}
+

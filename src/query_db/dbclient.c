@@ -11,7 +11,6 @@
 typedef struct
 {
    char * name;
-   char * type;
    int typeflags;
 } TABLEENTRY;
 
@@ -34,17 +33,17 @@ static unsigned int s_port = 0;
    aus der sql-Datei, mit der die Tabelle erzeugt wurde. */
 static TABLEENTRY s_table[] =
 {
-   { "name"         , "varchar(80)", 1 },
-   { "pricecent"    , "int"        , 0 },
-   { "edition"      , "char(8)"    , 1 },
-   { "colorIdentity", "varchar(15)", 1 },
-   { "id"           , "char(40)"   , 1 },
-   { "manaCost"     , "smallint"   , 0 },
-   { "types"        , "varchar(40)", 1 },
-   { "power"        , "tinyint"    , 0 },
-   { "toughness"    , "tinyint"    , 0 },
-   { "text"         , "text"       , 1 },
-   { 0, 0, 0 } // end of table
+   { "name"         , 1 },
+   { "pricecent"    , 0 },
+   { "edition"      , 1 },
+   { "colorIdentity", 1 },
+   { "id"           , 1 },
+   { "manaCost"     , 0 },
+   { "types"        , 1 },
+   { "power"        , 0 },
+   { "toughness"    , 0 },
+   { "text"         , 1 },
+   { 0, 0 } // end of table
 };
 
 
