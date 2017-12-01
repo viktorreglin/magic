@@ -6,13 +6,16 @@ CCR= gcc $(CFLAGS) -o$@ $<
 LINK=gcc $(LFLAGS) -o$@ $^
 
 # goals
-all: qdb_create qdb_dump obj/dbclient.o
+all: qdb_create qdb_dump qdb_insert
 
 # link
 qdb_create: obj/qdb_create.o obj/qdb.o obj/salloc.o obj/str.o obj/asprintf.o
 	$(LINK)
 
 qdb_dump: obj/qdb_dump.o obj/qdb.o obj/salloc.o obj/str.o obj/asprintf.o
+	$(LINK)
+
+qdb_insert: obj/qdb_insert.o obj/qdb.o obj/salloc.o obj/str.o obj/asprintf.o
 	$(LINK)
 
 # compile

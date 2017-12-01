@@ -33,7 +33,7 @@ static void dump( char * db, char * table, QDB_TABLEENTRY * properties, int numo
    // zur Datenbank
    if( mysql_query( conn, query ) != 0 )
    {
-      mysql_print_error( conn, "cannot dump", query );
+      mysql_print_error( conn, "cannot: ", query );
    }
    else
    {
@@ -45,17 +45,29 @@ static void dump( char * db, char * table, QDB_TABLEENTRY * properties, int numo
          {
             printf( "WARNING: %d properties but %d fields (should be equal)", numofprop, nfields );
          }
-         r = 1;
+         r = 0;
          while( (row = mysql_fetch_row(result)) != NULL )
          {
+            r++;
             printf( "===== row %d:\n", r );
             for( i = 0; i < nfields; i++ )
             {
-               printf( "   %s = '%s'\n", i < numofprop ? properties[i].name : "?", row[i] ? row[i] : "" );
+               if( row[i] == 0 )
+                  row[i] = "";
+               if( i < numofprop )
+               {
+                  char delim;
+                  delim = properties[i].isstring ? '\'' : ' ';
+                  printf( "%-20s  %c%s%c\n", properties[i].name, delim, row[i], delim );
+               }
+               else
+               {
+                  printf( "?                      '%s'\n", row[i] );
+               }
             }
-            r++;
          }
          mysql_free_result(result);
+         printf( "\n%d row%s\n-------\n", r, r==1 ? "" : "s" );
       }
       else
       {

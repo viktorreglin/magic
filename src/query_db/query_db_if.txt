@@ -58,8 +58,11 @@ qdb_show DBName
 qdb_delete DBName
    löscht die angegebene Datenbank (Achtung: Lösche nur selbst erzeugte Datenbanken !)
 
-qdb_dump DBName table
+qdb_dump DBName Table
    listet den Inhalt der angegebenen Tabelle
+
+qdb_insert DBName Table property value property value ...
+   trägt die angegebenen Werte in die Datenbanktabelle ein.
 
 
 2. Bibliothek

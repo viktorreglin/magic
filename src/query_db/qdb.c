@@ -199,6 +199,7 @@ QDB_TABLEENTRY * qdb_get_properties( char * db, char * table, int * pnum )
                proptab[r].name     = astrcpy( row[0] );
                proptab[r].sqltype  = astrcpy( row[1] );
                proptab[r].isstring = typeisstring(proptab[r].sqltype);
+               proptab[r].value    = 0;
             }
             r++;
          }
@@ -208,6 +209,7 @@ QDB_TABLEENTRY * qdb_get_properties( char * db, char * table, int * pnum )
             proptab[r].name     = 0;
             proptab[r].sqltype  = 0;
             proptab[r].isstring = false;
+            proptab[r].value    = 0;
          }
       }
       else
@@ -223,6 +225,12 @@ QDB_TABLEENTRY * qdb_get_properties( char * db, char * table, int * pnum )
       // printf( "%d properties (max=%d)\n", r, maxtablerows );;;
       if( pnum )
          *pnum = r;
+      if( r == 0 )
+      {
+         sfree(proptab);
+         printf( "database/table %s/%s not found\n", db, table );
+         return 0;
+      }
       return proptab;
    }
    sfree(proptab);
@@ -318,7 +326,13 @@ char * sql_buildquery( char * pattern, char * table, QDB_TABLEENTRY * prop, int 
    if(withvalues)
    {
       for( i = 0; i < num; i++ )
+      {
+         if( prop[i].value == 0 )
+         {
+            prop[i].value = prop[i].isstring ? "" : "0";
+         }
          qlen += strlen(prop[i].value) + qstrcpy( 0, prop[i].value ) + 3; // 3 for ,''
+      }
    }
 
    query = salloc(qlen+1);
@@ -327,7 +341,7 @@ char * sql_buildquery( char * pattern, char * table, QDB_TABLEENTRY * prop, int 
    if( withvalues )
       insertvalues( query, patt2, '?', num, prop );
 
-   printf( "*** query: %s\n", query );;;
+   // printf( "*** query: %s\n", query );;;
    sfree( patt2 );
    return query;
 }

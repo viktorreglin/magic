@@ -24,19 +24,19 @@ typedef struct
 #ifdef TYPEMAPPING_DEFINITION
 static QDB_TYPEMAPPING typemapping[] =
 {
-   { "int"        , "int"                                           },
-   { "string(%1)" , "varchar(%1) character set utf8"                },
-   { "string"     , "varchar(1024) character set utf8"              },
-   { "ident"      , "binary(20)"                                    },
-   { "color"      , "set('White', 'Red', 'Green', 'Blue', 'Black')" },
-   { "mana"       , "varchar(24)"                                   },
-   { "date"       , "datetime"                                      },
+   { "int"        , "int"                              },
+   { "string(%1)" , "varchar(%1) character set utf8"   },
+   { "string"     , "varchar(1024) character set utf8" },
+   { "ident"      , "binary(40)"                       },
+   { "color"      , "set('W','R','G','U','B')"         },
+   { "mana"       , "varchar(24)"                      },
+   { "date"       , "datetime"                         },
 };
 // parameter = %X, X = 1 char
 
 static char * stringtypes[] =
 {
-   "varchar", "set",
+   "varchar", "set", "binary"
 };
 #endif
 

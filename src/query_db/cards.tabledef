@@ -23,10 +23,12 @@ table Card
    manaCost             string(30)
    mciNumber            int
    multiverseid         int
-   name                 string(20)
+   name                 string(70)
+   power                int
    rarity               string(20)
    reserved             bool
    text                 string
+   toughness            int
    subtypes             string(40)
    supertypes           string(40)
    type                 string(20)
