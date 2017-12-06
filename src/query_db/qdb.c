@@ -260,6 +260,32 @@ static int qstrcpy( char * dst, char * src ) // ' --> '', returns # of such extr
 }
 
 
+static int setvalcpy( char * dst, char * src ) // commata zw. elementen, returns # of such extra chars
+// unschoen: Wir >>wissen<< hier, dass Elemente nur 1 Zeichen lang sind ....
+{
+   int add = 0;
+   if( !src )
+      return 0;
+
+   if( dst )
+      *dst++ = *src;
+   src++;
+
+   while( *src )
+   {
+      if( dst )
+         *dst++ = ',';
+      add++;
+
+      if( dst )
+         *dst++ = *src;
+      src++;
+   }
+
+   return add;
+}
+
+
 static void insertnames( char * query, char * pattern, char mark, int num, QDB_TABLEENTRY * prop )
 {
 char * dst;
@@ -298,7 +324,10 @@ int i, x;
    {
       if( prop[i].isstring )
          *dst++ = QUERY_STRING_DELIM;
-      x = qstrcpy( dst, prop[i].value );
+      if( strcmp(prop[i].sqltype,"set") == 0 )
+         x = setvalcpy( dst, prop[i].value );  // fuegt , zw. Elementen ein
+      else
+         x = qstrcpy( dst, prop[i].value );
       dst += strlen(prop[i].value) + x;
       if( prop[i].isstring )
          *dst++ = QUERY_STRING_DELIM;
