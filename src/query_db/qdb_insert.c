@@ -7,8 +7,7 @@
 
 #include "qdb.h"
 
-
-// Variante 1: noch ohne die qdb-API zum Einfuegen
+#undef API
 
 static void usage( void )
 {
@@ -16,7 +15,7 @@ static void usage( void )
    exit(1);
 }
 
-
+#ifndef API
 int fillvalue( QDB_TABLEENTRY * properties, char * name, char * value )
 // trage name/value in die Tabelle ein, return: 1 if eingetragen, sonst 0
 {
@@ -48,7 +47,7 @@ static void insert( char * db, char * table, QDB_TABLEENTRY * properties, int nu
    MYSQL * conn;
    static char pattern[] = "insert into %s (!) values (?);"; // %s = table, ! = properties, ? = values
 
-   conn = qdb_open( db );
+   conn = sql_open( db );
    if( !conn )
       return;
 
@@ -57,7 +56,7 @@ static void insert( char * db, char * table, QDB_TABLEENTRY * properties, int nu
    // zur Datenbank
    if( mysql_query( conn, query ) != 0 )
    {
-      mysql_print_error( conn, "cannot: ", query );
+      sql_print_error( conn, "cannot: ", query );
    }
    else
    {
@@ -67,16 +66,21 @@ static void insert( char * db, char * table, QDB_TABLEENTRY * properties, int nu
    }
 
    sfree( query );
-   qdb_close( &conn );
+   sql_close( conn );
 }
-
+#endif
 
 int main( int argc, char * argv[] )
 {
    char * db;
    char * table;
+   int i, numofpairs;
+#ifdef API
+   QDB_ROW    tr;
+#else
    QDB_TABLEENTRY * properties;
-   int i, numofpairs, numofprop, numofval;
+   int numofprop, numofval;
+#endif
 
    if( (argc < 5) || ((argc & 1) == 0) )  // wenigestens ein property/value-Paar, kein halbes Paar
       usage();
@@ -86,6 +90,21 @@ int main( int argc, char * argv[] )
    db    = argv[1];
    table = argv[2];
 
+#ifdef API
+   tr = qdb_begin_row( db, table );
+   if(!tr)
+   {
+      printf("FATAL: table '%s' not found in database '%s'\n", table, db );
+      exit(2);
+   }
+   for( i = 0; i < numofpairs; i++ )
+   {
+      if( !qdb_set_value( tr, argv[3+2*i], argv[4+2*i] ) )
+         printf( "ERROR: property '%s' not found\n", argv[3+2*i] );
+   }
+   if( !qdb_end_row(tr) )
+         printf( "ERROR: row NOT inserted in table '%s'\n", table );
+#else
    // hole Property-Tabelle aus der DB
    properties = qdb_get_properties( db, table, &numofprop );
    if( !properties )
@@ -110,6 +129,6 @@ int main( int argc, char * argv[] )
    insert( db, table, properties, numofprop );
 
    sfree( properties );
+#endif
    exit(0);
 }
-

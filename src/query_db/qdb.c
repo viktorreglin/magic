@@ -96,7 +96,7 @@ char * sql_type( char * magic_type )
 }
 
 
-void mysql_print_error( MYSQL * conn, char * txt1, char * txt2 )
+void sql_print_error( MYSQL * conn, char * txt1, char * txt2 )
 {
    fprintf( stderr, "ERROR: %s %s\n", txt1, txt2 );
    if( conn )
@@ -104,7 +104,7 @@ void mysql_print_error( MYSQL * conn, char * txt1, char * txt2 )
 }
 
 
-QDB_HANDLE qdb_open( char * dbname )
+MYSQL * sql_open( char * dbname )
 {
    MYSQL * conn;
 
@@ -117,19 +117,19 @@ QDB_HANDLE qdb_open( char * dbname )
 
    if( mysql_library_init( 0, NULL, NULL) )
    {
-      mysql_print_error( NULL, "cannot initialize mysql library", "" );
+      sql_print_error( NULL, "cannot initialize mysql library", "" );
       return 0;
    }
    conn = mysql_init( NULL );
    if( !conn )
    {
-      mysql_print_error( NULL, "cannot initialize mysql connection handler", "" );
+      sql_print_error( NULL, "cannot initialize mysql connection handler", "" );
       return 0;
    }
    if( !mysql_real_connect( conn, s_host, s_user, s_passwd, dbname, s_port, s_socket, 0 ) )
    {
-      mysql_print_error( conn, "cannot connect to mysql db", dbname );
-      qdb_close( &conn );
+      sql_print_error( conn, "cannot connect to mysql db", dbname );
+      sql_close( conn );
       return 0;
    }
 
@@ -137,11 +137,10 @@ QDB_HANDLE qdb_open( char * dbname )
 }
 
 
-void qdb_close( QDB_HANDLE * pqh )
+void sql_close( MYSQL * dh )
 {
-   mysql_close( *pqh );
+   mysql_close( dh );
    mysql_library_end();
-   *pqh = 0;
 }
 
 
@@ -167,7 +166,7 @@ QDB_TABLEENTRY * qdb_get_properties( char * db, char * table, int * pnum )
    MYSQL_ROW   row;
    QDB_TABLEENTRY * proptab;
 
-   conn = qdb_open( "information_schema" );
+   conn = sql_open( "information_schema" );
    if( !conn )
       return 0;
 
@@ -175,7 +174,7 @@ QDB_TABLEENTRY * qdb_get_properties( char * db, char * table, int * pnum )
 
    if( mysql_query( conn, query ) != 0 )
    {
-      mysql_print_error( conn, "cannot get meta data", query );
+      sql_print_error( conn, "cannot get meta data", query );
       return 0;
    }
    else
@@ -214,12 +213,12 @@ QDB_TABLEENTRY * qdb_get_properties( char * db, char * table, int * pnum )
       }
       else
       {
-         mysql_print_error( conn, "cannot store result", query );
+         sql_print_error( conn, "cannot store result", query );
          return 0;
       }
    }
 
-   qdb_close( &conn );
+   sql_close( conn );
    if( r <= maxtablerows )
    {
       // printf( "%d properties (max=%d)\n", r, maxtablerows );;;
@@ -265,6 +264,9 @@ static int setvalcpy( char * dst, char * src ) // commata zw. elementen, returns
 {
    int add = 0;
    if( !src )
+      return 0;
+
+   if( !*src )
       return 0;
 
    if( dst )
@@ -373,5 +375,23 @@ char * sql_buildquery( char * pattern, char * table, QDB_TABLEENTRY * prop, int 
    // printf( "*** query: %s\n", query );;;
    sfree( patt2 );
    return query;
+}
+
+
+QDB_ROW qdb_begin_row( char * dbname, char * table )
+{
+   return 0;
+}
+
+
+bool qdb_end_row( QDB_ROW tr )
+{
+   return false;;;
+}
+
+
+bool qdb_set_value( QDB_ROW tr, char * property, char * value )
+{
+   return false;;;
 }
 

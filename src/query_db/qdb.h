@@ -42,17 +42,19 @@ static char * stringtypes[] =
 
 
 // helper functions
-char * sql_type( char * magic_type );
-void mysql_print_error( MYSQL * conn, char * txt1, char * txt2 );
-QDB_TABLEENTRY * qdb_get_properties( char * dbname, char * tablename, int * pnum );
-char * sql_buildquery( char * pattern, char * table, QDB_TABLEENTRY * prop, int num, bool withvalues );
+MYSQL * sql_open( char * dbname ); // Datenbank öffnen, returns 0 iff error
+void    sql_close( MYSQL * dh );
+char *  sql_type( char * magic_type );
+void    sql_print_error( MYSQL * conn, char * txt1, char * txt2 );
+char *  sql_buildquery( char * pattern, char * table, QDB_TABLEENTRY * prop, int num, bool withvalues );
 
+QDB_TABLEENTRY * qdb_get_properties( char * dbname, char * tablename, int * pnum );
 
 // API  (error Ausgabe über stderr)
-typedef MYSQL * QDB_HANDLE;
+typedef int     QDB_ROW; // ändert sich noch
 
-QDB_HANDLE qdb_open( char * dbname ); // Datenbank öffnen, returns 0 iff error
-void       qdb_close( QDB_HANDLE * pqh );
-
+QDB_ROW    qdb_begin_row( char * dbname, char * table ); // Tabellenzeile anfangen
+bool       qdb_end_row( QDB_ROW tr ); // Tabellenzeile beenden und eintragen, true iff erfolgreich
+bool       qdb_set_value( QDB_ROW tr, char * property, char * value ); // einen Wert eintragen
 
 #endif // _QDB_H_

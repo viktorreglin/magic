@@ -24,7 +24,7 @@ static void dump( char * db, char * table, QDB_TABLEENTRY * properties, int numo
    MYSQL_ROW   row;
    static char pattern[] = "select ! from %s;"; // %s = table, ! = properties
 
-   conn = qdb_open( db );
+   conn = sql_open( db );
    if( !conn )
       return;
 
@@ -33,7 +33,7 @@ static void dump( char * db, char * table, QDB_TABLEENTRY * properties, int numo
    // zur Datenbank
    if( mysql_query( conn, query ) != 0 )
    {
-      mysql_print_error( conn, "cannot: ", query );
+      sql_print_error( conn, "cannot: ", query );
    }
    else
    {
@@ -71,12 +71,12 @@ static void dump( char * db, char * table, QDB_TABLEENTRY * properties, int numo
       }
       else
       {
-         mysql_print_error( conn, "cannot store result", query );
+         sql_print_error( conn, "cannot store result", query );
       }
    }
 
    sfree( query );
-   qdb_close( &conn );
+   sql_close( conn );
 }
 
 

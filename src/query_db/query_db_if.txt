@@ -68,28 +68,27 @@ qdb_insert DBName Table property value property value ...
 2. Bibliothek
  genauer --> siehe qdb.h
  Eintragen von Werten:
-  dh = qdb_open(Name)
-  qdb_close(dh)
-    Öffnen und Schließen der angegebenen Datenbank
 
-  eh = qdb_begin(dh,Tabellenname)
-  qdb_property(eh,Propertyname,Value)
-  ... weitere qdb_property()-Aufrufe, Value immer als C-string
-  qdb_end(eh)
-  Diese Aufrufe können geschachtelt werden, z.B:
-   eh = qdb_begin(dh,"edition")
-   qdb_property(eh,"name","6ED")
-   ch = qdb_begin(eh,"card")
-   qdb_property(ch,"name","Plains")
-   qdb_property(ch,"id","237f51551c42ec1cec0d4417147d8d86c0027e00")
-   qdb_end(ch)
+  eh = qdb_begin_row(Datenbankname,Tabellenname)
+  qdb_set_value(eh,Propertyname,Value)
+  ... weitere qdb_set_value()-Aufrufe, Value immer als C-string
+  qdb_end_row(eh)
+  Beispiel fuer 2 Tabellen:
+   eh = qdb_begin_row("magic","edition");
+   qdb_set_value(eh,"name","6ED");
+   qdb_end_row(eh);
+
+   ch = qdb_begin("magic","card");
+   qdb_set_value(ch,"edition_code","6ED"); // Verknuepfung zur edition-Tabelle !
+   qdb_set_value(ch,"name","Plains");
+   qdb_set_value(ch,"id","237f51551c42ec1cec0d4417147d8d86c0027e00");
+   qdb_end_row(ch);
    ...
-   qdb_end(eh)
 
   Abfragen/Ändern
-   qdb_query(dh,Tabellenname,Query) ...
-   qdb_change(dh,Tabellenname,Query,Property,Newvalue)
-   qdb_delete(dh,Tabellenname,Query)
+   qdb_query(Datenbankname,Tabellenname,Query) ...
+   qdb_change(Datenbankname,Tabellenname,Query,Property,Newvalue)
+   qdb_delete(Datenbankname,Tabellenname,Query)
 
 3. Abfragesprache
  Die Sprache ist näher am Benutzer (also näher an Magic) als SQL, aber leicht in SQL zu übersetzen.
