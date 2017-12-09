@@ -1,34 +1,36 @@
 
-CFLAGS=-g -c -Wall -I../util -I/usr/include/mysql -DLINUX
-LFLAGS=-g -lmysqlclient
+CFLAGS=-g -c -Wall -I../include -I/usr/include/mysql -DLINUX
 
 CCR= gcc $(CFLAGS) -o$@ $<
-LINK=gcc $(LFLAGS) -o$@ $^
+LINK=gcc -g -o$@ $< -lmysqlclient -L../lib -lqdb -lutil
+LIB= ar -cr $@ $^
+
 
 # goals
-all: qdb_create qdb_dump qdb_insert
+all: ../../bin/qdb_create ../../bin/qdb_dump ../../bin/qdb_insert
+
+
+# build library
+../lib/libqdb.a: obj/qdb.o
+	$(LIB)
 
 # link
-qdb_create: obj/qdb_create.o obj/qdb.o obj/salloc.o obj/str.o obj/asprintf.o
+../../bin/qdb_create: obj/qdb_create.o ../lib/libutil.a ../lib/libqdb.a
 	$(LINK)
 
-qdb_dump: obj/qdb_dump.o obj/qdb.o obj/salloc.o obj/str.o obj/asprintf.o
+../../bin/qdb_dump: obj/qdb_dump.o ../lib/libutil.a ../lib/libqdb.a
 	$(LINK)
 
-qdb_insert: obj/qdb_insert.o obj/qdb.o obj/salloc.o obj/str.o obj/asprintf.o
+../../bin/qdb_insert: obj/qdb_insert.o ../lib/libutil.a ../lib/libqdb.a
 	$(LINK)
 
 # compile
 obj/%.o : %.c
 	$(CCR)
 
-obj/%.o : ../util/%.c
-	$(CCR)
-
 
 clean:
 	-rm -f -r obj
-
 
 # automatic include dependencies:
 obj/%.d: %.c
