@@ -15,10 +15,10 @@ D_magic
       D_deck_editor
       D_statistics
       D_output
-      D_read_config
       D_util // Module, die für mehrere Programmteile nützlich sind
+      D_include // Interface-Definitionen
+      D_lib  // Bibliotheken
    D_bin // (ausführbare) Binärdateien
-   D_lib // externe Bibliotheken / Programme
    D_doc // Dokumentation
       F_project_structure.txt
    D_test // Testdateien
