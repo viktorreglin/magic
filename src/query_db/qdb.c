@@ -227,7 +227,7 @@ QDB_TABLEENTRY * qdb_get_properties( char * db, char * table, int * pnum )
       if( r == 0 )
       {
          sfree(proptab);
-         printf( "database/table %s/%s not found\n", db, table );
+         fprintf( stderr, "database/table %s/%s not found\n", db, table );
          return 0;
       }
       return proptab;
@@ -378,20 +378,103 @@ char * sql_buildquery( char * pattern, char * table, QDB_TABLEENTRY * prop, int 
 }
 
 
+static int fillvalue( QDB_TABLEENTRY * properties, char * name, char * value )
+// trage name/value in die Tabelle ein, return: 1 if eingetragen, sonst 0
+{
+   QDB_TABLEENTRY * prop;
+
+   prop = properties;
+   while( prop->name )
+   {
+      if( strcmp( prop->name, name ) == 0 )
+      {
+         if( prop->value )
+         {
+            fprintf( stderr, "WARNIMG: property %s has already a value (%s), ignoring new value(%s)\n", name, prop->value, value );
+            return 0;
+         }
+         prop->value = value;
+         return 1;
+      }
+      prop++;
+   }
+   fprintf( stderr, "ERROR: property %s not found\n", name );
+   return 0;
+}
+
+
+static unsigned long insert( char * db, char * table, QDB_TABLEENTRY * properties, int numofprop )
+{
+   unsigned long n;
+   char * query;
+   MYSQL * conn;
+   static char pattern[] = "insert into %s (!) values (?);"; // %s = table, ! = properties, ? = values
+
+   conn = sql_open( db );
+   if( !conn )
+      return 0;
+
+   query = sql_buildquery( pattern, table, properties, numofprop, true );
+
+   // zur Datenbank
+   if( mysql_query( conn, query ) != 0 )
+   {
+      n = 0;
+      sql_print_error( conn, "cannot: ", query );
+   }
+   else
+   {
+      n = (unsigned long)mysql_affected_rows(conn);
+      // fprintf( stderr, "%lu affected row%s\n", n, n == 1 ? "" : "s" );
+   }
+
+   sfree( query );
+   sql_close( conn );
+   return n;
+}
+
+
 QDB_ROW qdb_begin_row( char * dbname, char * table )
 {
-   return 0;
+   QDB_ROWDATA * prow;
+
+   if( !dbname || !*dbname || !table || !*table )
+      return 0;
+
+   prow = salloc(sizeof(QDB_ROWDATA));
+   prow->properties = qdb_get_properties( dbname, table, &(prow->numofprop) );
+   if( (prow->properties == 0) || (prow->numofprop <= 0) )
+   {
+      sfree(prow);
+      return 0;
+   }
+   prow->dbname    = astrcpy(dbname);
+   prow->tablename = astrcpy(table);
+   return prow;
 }
 
 
 bool qdb_end_row( QDB_ROW tr )
 {
-   return false;;;
+   unsigned long rowsaffected = 0;
+
+   if( !tr )
+      return false;
+
+   rowsaffected = insert( tr->dbname, tr->tablename, tr->properties, tr->numofprop );
+   sfree(tr->tablename);
+   sfree(tr->dbname);
+   sfree(tr->properties);
+   sfree(tr);
+   return rowsaffected == 1;
 }
 
 
 bool qdb_set_value( QDB_ROW tr, char * property, char * value )
 {
-   return false;;;
+   if( !tr || !property || !value )
+      return false;
+
+   return fillvalue( tr->properties, property, value ) == 1;
 }
 

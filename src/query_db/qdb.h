@@ -11,7 +11,6 @@ typedef struct
    char * sqltype;
 } QDB_TYPEMAPPING;
 
-
 typedef struct
 {
    char * name;
@@ -20,6 +19,13 @@ typedef struct
    char * value;
 } QDB_TABLEENTRY;
 
+typedef struct
+{
+  char * dbname;
+  char * tablename;
+  int    numofprop;
+  QDB_TABLEENTRY * properties; // array
+} QDB_ROWDATA;
 
 #ifdef TYPEMAPPING_DEFINITION
 static QDB_TYPEMAPPING typemapping[] =
@@ -51,7 +57,7 @@ char *  sql_buildquery( char * pattern, char * table, QDB_TABLEENTRY * prop, int
 QDB_TABLEENTRY * qdb_get_properties( char * dbname, char * tablename, int * pnum );
 
 // API  (error Ausgabe über stderr)
-typedef int     QDB_ROW; // ändert sich noch
+typedef QDB_ROWDATA * QDB_ROW;
 
 QDB_ROW    qdb_begin_row( char * dbname, char * table ); // Tabellenzeile anfangen
 bool       qdb_end_row( QDB_ROW tr ); // Tabellenzeile beenden und eintragen, true iff erfolgreich
