@@ -11,7 +11,7 @@ die problemorientiert ist (aber relativ einfach in SQL umgewandelt werden kann).
 
 0. Voraussetzungen
 Der lokale mysql-Server muss laufen, der aktuelle User muss ihn benutzen dürfen, siehe
-../../doc/readme_mysql.txt
+readme_mysql.txt
 
 1. ausführbare Programme
 

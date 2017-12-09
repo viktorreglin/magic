@@ -24,5 +24,5 @@ im eigenen home-Verzeichnis eine Datei  '.my.cnf' anlegen mit folgenden Inhalt:
 user=root
 
 Alle weiteren mysql-Zugriffe (Datenbank anlegen, Tabellen anlegen, Werte eintragen/abfragen, ...)
-erfolgen über query_db, siehe src/query_db/query_db_if.txt
+erfolgen über query_db, siehe query_db_if.txt
 
