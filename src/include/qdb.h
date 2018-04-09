@@ -42,7 +42,7 @@ static QDB_TYPEMAPPING typemapping[] =
 
 static char * stringtypes[] =
 {
-   "varchar", "set", "binary"
+   "varchar", "set", "binary", "datetime"
 };
 #endif
 
