@@ -94,12 +94,12 @@ qdb_insert DBName Table property value property value ...
  Die Sprache ist näher am Benutzer (also näher an Magic) als SQL, aber leicht in SQL zu übersetzen.
 
  Typen        --> SQL-Typ
-  bool             TINYINT
-  int              INT
+  bool             TINYINT(1)
+  int              INT(11)
   string           VARCHAR(1024)   CHARACTER SET utf8
   string(laenge)   VARCHAR(laenge) CHARACTER SET utf8
-  ident            BINARY(20)
-  color            SET ('White', 'Red', 'Green', 'Blue', 'Black')
+  ident            BINARY(40)
+  color            SET ('W', 'R', 'G', 'U', 'B')
   mana             VARCHAR(24)
   date             DATETIME
 

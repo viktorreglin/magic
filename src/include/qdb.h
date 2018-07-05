@@ -30,6 +30,7 @@ typedef struct
 #ifdef TYPEMAPPING_DEFINITION
 static QDB_TYPEMAPPING typemapping[] =
 {
+   { "bool"       , "bool"                             },
    { "int"        , "int"                              },
    { "string(%1)" , "varchar(%1) character set utf8"   },
    { "string"     , "varchar(1024) character set utf8" },
