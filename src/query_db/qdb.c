@@ -198,6 +198,7 @@ QDB_TABLEENTRY * qdb_get_properties( char * db, char * table, int * pnum )
                proptab[r].name     = astrcpy( row[0] );
                proptab[r].sqltype  = astrcpy( row[1] );
                proptab[r].isstring = typeisstring(proptab[r].sqltype);
+               proptab[r].isdate   = strcasecmp(proptab[r].sqltype, "datetime") == 0;
                proptab[r].value    = 0;
             }
             r++;
@@ -208,6 +209,7 @@ QDB_TABLEENTRY * qdb_get_properties( char * db, char * table, int * pnum )
             proptab[r].name     = 0;
             proptab[r].sqltype  = 0;
             proptab[r].isstring = false;
+            proptab[r].isdate   = false;
             proptab[r].value    = 0;
          }
       }
@@ -361,6 +363,8 @@ char * sql_buildquery( char * pattern, char * table, QDB_TABLEENTRY * prop, int 
          if( prop[i].value == 0 )
          {
             prop[i].value = prop[i].isstring ? "" : "0";
+            if( prop[i].isdate )
+               prop[i].value = "current_timestamp()";
          }
          qlen += strlen(prop[i].value) + qstrcpy( 0, prop[i].value ) + 3; // 3 for ,''
       }

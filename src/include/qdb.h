@@ -16,6 +16,7 @@ typedef struct
    char * name;
    char * sqltype;
    bool   isstring;
+   bool   isdate;
    char * value;
 } QDB_TABLEENTRY;
 
@@ -36,14 +37,13 @@ static QDB_TYPEMAPPING typemapping[] =
    { "string"     , "varchar(1024) character set utf8" },
    { "ident"      , "binary(40)"                       },
    { "color"      , "set('W','R','G','U','B')"         },
-   { "mana"       , "varchar(24)"                      },
    { "date"       , "datetime"                         },
 };
 // parameter = %X, X = 1 char
 
 static char * stringtypes[] =
 {
-   "varchar", "set", "binary", "datetime"
+   "varchar", "set", "binary"
 };
 #endif
 
