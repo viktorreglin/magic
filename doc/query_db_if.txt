@@ -100,8 +100,42 @@ qdb_insert DBName Table property value property value ...
   string(laenge)   VARCHAR(laenge) CHARACTER SET utf8
   ident            BINARY(40)
   color            SET ('W', 'R', 'G', 'U', 'B')
-  mana             VARCHAR(24)
   date             DATETIME
 
- Syntax
-  t.b.d.
+Syntax
+  ist sehr ähnlich der Filtersyntax in SQL WHERE-Klauseln
+  GROSS/klein-Schreibung spielt keine Rolle
+
+  Properties werden mit ihrem Namen angegeben, optional mit Tabellenname davor (zwingend, wenn sonst nicht eindeutig)
+   Beispiele: artist, manaCost, releasedate, Card.name, edition.NAME
+
+  Eine Abfrage ist ein Ausdruck, der TRUE oder FALSE liefern muss, bei TRUE erscheint die entsprechende Zeile im Ergebnis. Ausdrücke werden gebildet aus Properties (die für ihre Werte stehen), Konstanten, Operatoren, Funktionen und runden Klammern.
+   Konstanten:
+    bool:    TRUE FALSE
+    int:     wie üblich (dezimal)
+    string:  in einfachen Anführungsstrichen
+    ident:   Lange Hexadezimalzahl
+    color:   Folge von Buchstaben aus der Menge
+    date:    'YYYY-MM-DD hh:mm:ss'
+
+   arithmetische Operatoren: + - * /    tbd
+
+   Funktionen:  tbd
+
+   Vergleichsoperatoren:  =  <>  <  <=  >  >=   BETWEEN    IS NULL    IN    LIKE
+     < <= > >= beachten bei Strings die alphabetische Reihenfolge
+     BETWEEN als Abkürzung, z.B.: zahl BETWEEN 4 AND 7
+     IS NULL ergibt true, wenn kein Wert vorhanden ist, z.B.: type IS NULL
+     IN ist das Enthaltensein in einer Menge: color IN ('W','R')
+     LIKE für Stringvergleiche mit Wildcards: text LINKE '*?-Bahn*'
+       ? = genau ein beliebiges Zeichen, * = beliebig viele beliebige Zeichen
+     Verneining mit NOT: NOT BETWEEN, IS NOT NULL, NOT IN, NOT LIKE
+
+   logische Operatoren:  AND  OR  NOT
+
+   Priorität der Operatoren: wie in SQL
+    höchste     tbd
+
+    niedrigste  tbd
+
+    Klammern setzen empfohlen!
