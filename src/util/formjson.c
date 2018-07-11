@@ -61,7 +61,7 @@ bool instring, escaped, brackets;
                printf( "\n%*s", level*indent, "" );
             break;
          case ':':
-            printf( "%c ", ch, stdout );
+            printf( "%c ", ch );
             break;
          case '"':
             instring = true;

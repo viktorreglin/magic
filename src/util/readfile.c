@@ -5,6 +5,7 @@
 
 #include "port.h"
 #include "salloc.h"
+#include "filelength.h"
 #include "readfile.h"
 
 
