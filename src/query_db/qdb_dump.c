@@ -28,7 +28,7 @@ static void dump( char * db, char * table, QDB_TABLEENTRY * properties, int numo
    if( !conn )
       return;
 
-   query = sql_buildquery( pattern, table, properties, numofprop, false );
+   query = sql_buildquery( pattern, table, 0, properties, numofprop, false );
 
    // zur Datenbank
    if( mysql_query( conn, query ) != 0 )

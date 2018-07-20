@@ -343,15 +343,19 @@ int i, x;
 }
 
 
-char * sql_buildquery( char * pattern, char * table, QDB_TABLEENTRY * prop, int num, bool withvalues )
+char *  sql_buildquery( char * pattern, char * p1, char * p2, QDB_TABLEENTRY * prop, int num, bool withvalues )
 {
    int i, qlen;
-   char * patt2; // pattern w table
+   char * patt2; // pattern w parameters
    char * query;
 
-   qlen  = strlen(pattern) + strlen(table) + 1;
+   if( !p1 )
+      p1 = "";
+   if( !p2 )
+      p2 = "";
+   qlen  = strlen(pattern) + strlen(p1) + strlen(p2) + 1;
    patt2 = salloc(qlen+1);
-   sprintf( patt2, pattern, table );
+   sprintf( patt2, pattern, p1, p2 );
 
    for( i = 0; i < num; i++ )
       qlen += strlen(prop[i].name) + 1; // 1 for ,
@@ -376,7 +380,7 @@ char * sql_buildquery( char * pattern, char * table, QDB_TABLEENTRY * prop, int 
    if( withvalues )
       insertvalues( query, patt2, '?', num, prop );
 
-   // printf( "*** query: %s\n", query );;;
+   printf( "*** query: %s\n", query );;;
    sfree( patt2 );
    return query;
 }
@@ -418,7 +422,7 @@ static unsigned long insert( char * db, char * table, QDB_TABLEENTRY * propertie
    if( !conn )
       return 0;
 
-   query = sql_buildquery( pattern, table, properties, numofprop, true );
+   query = sql_buildquery( pattern, table, 0, properties, numofprop, true );
 
    // zur Datenbank
    if( mysql_query( conn, query ) != 0 )
@@ -480,5 +484,166 @@ bool qdb_set_value( QDB_ROW tr, char * property, char * value )
       return false;
 
    return fillvalue( tr->properties, property, value ) == 1;
+}
+
+
+static QDB_RESULT * qdb_alloc( int rows, int fields )
+{
+   int i, k;
+   QDB_RESULT * pr;
+
+   pr = salloc( sizeof(QDB_RESULT) );
+   pr->numofrows = rows;
+   pr->row = salloc( sizeof(QDB_RESULTROW) * (rows+1) );
+   for( i = 0; i <= rows; i++ )
+   {
+      pr->row[i].numofvalues = fields;
+      pr->row[i].value = salloc( sizeof(QDB_VALUE) * fields );
+      for( k = 0; k < fields; k++ )
+      {
+         pr->row[i].value[k].strval = 0;
+         pr->row[i].value[k].intval = 0;
+      }
+   }
+   return pr;
+}
+
+
+void qdb_free( QDB_RESULT * pr )
+{
+   int i;
+
+   if( !pr )
+      return;
+
+   if( pr->row )
+   {
+      for( i = 0; i <= pr->numofrows; i++ )
+      {
+         if( pr->row[i].value )
+         {
+            sfree( pr->row[i].value );
+            pr->row[i].value = 0;
+         }
+         pr->row[i].numofvalues = 0;
+      }
+      sfree( pr->row );
+      pr->row = 0;
+   }
+   pr->numofrows = 0;
+   sfree(pr);
+}
+
+
+char * build_where( char * filter )
+{
+   return "";;; //@@@
+}
+
+
+QDB_RESULT * qdb_query( char * dbname, char * table, int * nrows, char * filter )
+{
+   MYSQL * conn;
+   MYSQL_RES * result;
+   MYSQL_ROW   row;
+   int i, r, nfields, numofprop;
+   char * query;
+   QDB_TABLEENTRY * properties;
+   QDB_RESULT * pres;
+   static char pattern[] = "select ! from %s where %s;"; // ! = properties
+
+   if( !nrows )
+      return 0;
+
+   *nrows = -1; // error
+
+   if( !dbname || !table || !filter )
+      return 0;
+
+   conn = sql_open( dbname );
+   if( !conn )
+      return 0;
+
+
+   properties = qdb_get_properties( dbname, table, &numofprop );
+   if( !properties )
+      return 0;
+
+   query = sql_buildquery( pattern, table, build_where(filter), properties, numofprop, false );
+
+   // zur Datenbank
+   if( mysql_query( conn, query ) != 0 )
+   {
+      sql_print_error( conn, "cannot: ", query );
+      sfree(properties);
+      return 0;
+   }
+   else
+   {
+      result = mysql_store_result(conn);
+      if( result )
+      {
+         *nrows = mysql_num_rows(result);
+         if( *nrows == 0 )
+         {
+            sfree(properties);
+            return 0;   // no data
+         }
+
+         nfields = mysql_num_fields(result);
+         if( nfields != numofprop )
+         {
+            fprintf( stderr, "internal error in qdb_query: %d properties but %d fields (should be equal)\n", numofprop, nfields );
+            sfree(properties);
+            return 0;
+         }
+
+         pres = qdb_alloc( *nrows, nfields );
+         // row[0]:
+         for( i = 0; i < nfields; i++ )
+         {
+            pres->row[0].value[i].strval = properties[i].name;
+            pres->row[0].value[i].intval = 0;
+            if( properties[i].isstring )
+               pres->row[0].value[i].intval |= QDB_TYPE_IS_STRING;
+            if( properties[i].isdate )
+               pres->row[0].value[i].intval |= QDB_TYPE_IS_DATE;
+            else if( strcmp(properties[i].sqltype,"bool") == 0 )
+               pres->row[0].value[i].intval |= QDB_TYPE_IS_BOOL;
+         }
+         // row[1]..row[numofrows]:
+         r = 0;
+         while( (row = mysql_fetch_row(result)) != NULL )
+         {
+            r++;
+            for( i = 0; i < nfields; i++ )
+            {
+               if( row[i] == 0 )
+                  row[i] = "";
+               pres->row[r].value[i].strval = row[i];
+               pres->row[r].value[i].intval = strtol( row[i], 0, 0 );
+               if( pres->row[0].value[i].intval & QDB_TYPE_IS_DATE )
+               {
+                  pres->row[r].value[i].intval = 99;;; //@@@ Umrechnung Datumsstring auf Zahl fehlt hier
+               }
+               else if( pres->row[0].value[i].intval & QDB_TYPE_IS_BOOL )
+               {
+                  if( strcasecmp(row[i],"true") == 0 )
+                     pres->row[r].value[i].intval = 1;
+               }
+            }
+         }
+         mysql_free_result(result);
+      }
+      else
+      {
+         sql_print_error( conn, "cannot store result", query );
+      }
+   }
+   sfree(properties);
+   sfree( query );
+   sql_close( conn );
+
+   return pres;
 }
 
