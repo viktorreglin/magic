@@ -13,6 +13,10 @@
 #define QUERY_STRING_DELIM '\''
 #define QUERY_PAR_DELIM    ','
 
+#define MAX_TABLE_NAME_LENGTH 100
+
+extern char * strcasestr( char *, char * );
+
 
 static bool match( char * srctype, char * typepattern, STR * pparam1 )
 {
@@ -187,7 +191,7 @@ QDB_TABLEENTRY * qdb_get_properties( char * db, char * table, int * pnum )
          nfields = mysql_num_fields(result);
          if( nfields != 2 )
          {
-            printf( "qdb_get_properties: internal error" );
+            fprintf( stderr, "qdb_get_properties: internal error" );
             exit( 3 );
          }
          r = 0;
@@ -535,9 +539,167 @@ void qdb_free( QDB_RESULT * pr )
 }
 
 
-char * build_where( char * filter )
+static char * allocate_buffer( char * oldbuf, int * buflen, int minlen )
 {
-   return "";;; //@@@
+   char * newbuf;
+
+   if( !oldbuf )
+   {
+      newbuf = salloc(minlen);
+   }
+   else if( *buflen < minlen )
+   {
+      newbuf = salloc(minlen);
+      memcpy( newbuf, oldbuf, *buflen );
+      sfree( oldbuf );
+   }
+   else
+   {
+      newbuf = oldbuf;
+   }
+   *buflen = minlen;
+   newbuf[*buflen] = 0;
+   return newbuf;
+}
+
+
+char * convertlike( char * psrc, int * srclen )
+{
+   static char * buf = 0;
+   static int buflen = 0;
+
+   bool escape_used;
+   char * pe;
+   char * pd;
+   char * ps = psrc;
+
+   while( *ps && (*ps != '\'') )
+      ps++;        // goto string start
+
+   *srclen = ps - psrc;
+   if( ! *ps )
+      return psrc;
+
+   ps++;
+   pe = ps;
+   while( *pe && (*pe != '\'') )
+      pe++;        // goto string end
+
+   buf = allocate_buffer( buf, &buflen, 2*(pe - psrc)+11 ); // 11 for escape ..
+   pd = buf;
+   escape_used = false;
+   while( ps != pe )
+   {
+      switch( * ps )
+      {
+      case '*':
+         *pd++ = '%';
+          ps++;
+         break;
+      case '?':
+         *pd++ = '_';
+          ps++;
+         break;
+      case '%':
+      case '_':
+      case '\\':
+         *pd++ = '\\';
+         *pd++ = *ps++;
+         escape_used = true;
+         break;
+      default:
+         *pd++ = *ps++;
+      }
+   }
+   *pd = 0;
+   if( escape_used )
+      strcpy( pd, " escape '\\' " );
+
+   *srclen = ps - psrc;
+   return buf;
+}
+
+
+static char * build_where( char * filter, char * table )
+{  // in der ersten Version fast unveraendert lassen, dafuer nur Namen aus 'table' zugelassen (noch keine Joins)
+   // Aenderungen : table.name --> name; like '*?%_\' -> like '%_\%\_\\' escape '\';
+   static char * buf = 0;
+   static int buflen = 0;
+
+   char * pdst;
+   char * psrc;
+   char * ptable;
+   char * plike;
+   char * slike;
+   char tabledot[MAX_TABLE_NAME_LENGTH + 2];
+   int tabledotlen, destlen, copylen, slen;
+
+   if( strlen(table) > MAX_TABLE_NAME_LENGTH )
+   {
+      fprintf( stderr, "internal error in qdb_query: table name '%s' too long (> %d chars)\n", table, MAX_TABLE_NAME_LENGTH );
+      return "";
+   }
+   strcpy( tabledot, table );
+   strcat( tabledot, "." );
+   tabledotlen = strlen(tabledot);
+
+   buf = allocate_buffer( buf, &buflen, 2*strlen(filter)+1 );
+   pdst = buf;
+   destlen = buflen;
+   psrc = filter;
+   ptable = strcasestr( psrc, tabledot );
+   plike  = strcasestr( psrc, "like");
+   while( *psrc )
+   {
+      bool dotable = false;
+      bool dolike  = false;
+      if( ptable && plike )
+      {
+         dotable = ptable <= plike;
+         dolike  = !dotable;
+      }
+      else if( ptable )
+      {
+         dotable = true;
+      }
+      else if( plike )
+      {
+         dolike = true;
+      }
+
+      if( dotable )
+      {
+         copylen = ptable - psrc;
+         memcpy( pdst, psrc, copylen );
+         pdst += copylen;
+         destlen -= copylen;
+         psrc = ptable + tabledotlen;
+         ptable = strcasestr( psrc, tabledot );
+      }
+      if( dolike )
+      {
+         copylen = plike - psrc + 4;
+         memcpy( pdst, psrc, copylen );
+         pdst += copylen;
+         destlen -= copylen;
+         psrc += copylen;
+         slike = convertlike( psrc, &copylen );
+         psrc += copylen;
+         slen = strlen( slike );
+         if( slen >= destlen )
+         {
+            *pdst = 0;
+            buf = allocate_buffer( buf, &buflen, buflen+2*slen );
+            pdst = buf + strlen(buf);
+            destlen = buflen - (pdst-buf);
+         }
+         memcpy( pdst, slike, slen );
+         pdst += slen;
+         destlen -= slen;
+         plike  = strcasestr( psrc, "like");
+      }
+   }
+   return buf;
 }
 
 
@@ -569,7 +731,7 @@ QDB_RESULT * qdb_query( char * dbname, char * table, int * nrows, char * filter 
    if( !properties )
       return 0;
 
-   query = sql_buildquery( pattern, table, build_where(filter), properties, numofprop, false );
+   query = sql_buildquery( pattern, table, build_where(filter,table), properties, numofprop, false );
 
    // zur Datenbank
    if( mysql_query( conn, query ) != 0 )
