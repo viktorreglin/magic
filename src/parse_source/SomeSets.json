@@ -1,0 +1,178 @@
+{
+  "LEA": {
+    "name": "Limited Edition Alpha",
+    "code": "LEA",
+    "gathererCode": "1E",
+    "magicCardsInfoCode": "al",
+    "releaseDate": "1993-08-05",
+    "border": "black",
+    "type": "core",
+    "booster": [
+      "rare",
+      "uncommon",
+      "uncommon",
+      "uncommon",
+      "common",
+      "common",
+      "common",
+      "common",
+      "common",
+      "common",
+      "common",
+      "common",
+      "common",
+      "common",
+      "common"
+    ],
+    "mkm_name": "Alpha",
+    "mkm_id": 1,
+    "cards": [
+      {
+        "artist": "Richard Thomas",
+        "cmc": 5,
+        "colorIdentity": [
+          "U"
+        ],
+        "colors": [
+          "Blue"
+        ],
+        "flavor": "These spirits of the air are winsome and wild, and cannot be truly contained. Only marginally intelligent, they often substitute whimsy for strategy, delighting in mischief and mayhem.",
+        "id": "926234c2fe8863f49220a878346c4c5ca79b6046",
+        "imageName": "air elemental",
+        "layout": "normal",
+        "manaCost": "{3}{U}{U}",
+        "mciNumber": "47",
+        "multiverseid": 94,
+        "name": "Air Elemental",
+        "power": "4",
+        "rarity": "Uncommon",
+        "subtypes": [
+          "Elemental"
+        ],
+        "text": "Flying",
+        "toughness": "4",
+        "type": "Creature — Elemental",
+        "types": [
+          "Creature"
+        ]
+      },
+      {
+        "artist": "Jeff A. Menges",
+        "cmc": 3,
+        "colorIdentity": [
+          "B"
+        ],
+        "colors": [
+          "Black"
+        ],
+        "flavor": "They say the Zombie Master controlled these foul creatures even before his own death, but now that he is one of them, nothing can make them betray him.",
+        "id": "a6c397e9c1979e66f8af4ab07cedeb240b9c223d",
+        "imageName": "zombie master",
+        "layout": "normal",
+        "manaCost": "{1}{B}{B}",
+        "mciNumber": "46",
+        "multiverseid": 93,
+        "name": "Zombie Master",
+        "power": "2",
+        "rarity": "Rare",
+        "subtypes": [
+          "Zombie"
+        ],
+        "text": "Other Zombie creatures have swampwalk. (They can't be blocked as long as defending player controls a Swamp.)\nOther Zombies have \"{B}: Regenerate this permanent.\"",
+        "toughness": "3",
+        "type": "Creature — Zombie",
+        "types": [
+          "Creature"
+        ]
+      }
+    ]
+  },
+  "LEB": {
+    "name": "Limited Edition Beta",
+    "code": "LEB",
+    "gathererCode": "2E",
+    "magicCardsInfoCode": "be",
+    "releaseDate": "1993-10-01",
+    "border": "black",
+    "type": "core",
+    "booster": [
+      "rare",
+      "uncommon",
+      "uncommon",
+      "uncommon",
+      "common",
+      "common",
+      "common",
+      "common",
+      "common",
+      "common",
+      "common",
+      "common",
+      "common",
+      "common",
+      "common"
+    ],
+    "mkm_name": "Beta",
+    "mkm_id": 2,
+    "cards": [
+      {
+        "artist": "Richard Thomas",
+        "cmc": 5,
+        "colorIdentity": [
+          "U"
+        ],
+        "colors": [
+          "Blue"
+        ],
+        "flavor": "These spirits of the air are winsome and wild, and cannot be truly contained. Only marginally intelligent, they often substitute whimsy for strategy, delighting in mischief and mayhem.",
+        "id": "27efae96470cf20bd2db52c2b8d30d6d4ac96426",
+        "imageName": "air elemental",
+        "layout": "normal",
+        "manaCost": "{3}{U}{U}",
+        "mciNumber": "47",
+        "multiverseid": 389,
+        "name": "Air Elemental",
+        "power": "4",
+        "rarity": "Uncommon",
+        "subtypes": [
+          "Elemental"
+        ],
+        "text": "Flying",
+        "toughness": "4",
+        "type": "Creature — Elemental",
+        "types": [
+          "Creature"
+        ]
+      },
+      {
+        "artist": "Jeff A. Menges",
+        "cmc": 3,
+        "colorIdentity": [
+          "B"
+        ],
+        "colors": [
+          "Black"
+        ],
+        "flavor": "They say the Zombie Master controlled these foul creatures even before his own death, but now that he is one of them, nothing can make them betray him.",
+        "id": "5a3eb189892f0ea486b6f0332d91a37d5dc85f8b",
+        "imageName": "zombie master",
+        "layout": "normal",
+        "manaCost": "{1}{B}{B}",
+        "mciNumber": "46",
+        "multiverseid": 388,
+        "name": "Zombie Master",
+        "power": "2",
+        "rarity": "Rare",
+        "subtypes": [
+          "Zombie"
+        ],
+        "text": "Other Zombie creatures have swampwalk. (They can't be blocked as long as defending player controls a Swamp.)\nOther Zombies have \"{B}: Regenerate this permanent.\"",
+        "toughness": "3",
+        "type": "Creature — Zombie",
+        "types": [
+          "Creature"
+        ]
+      }
+    ]
+  }
+}
