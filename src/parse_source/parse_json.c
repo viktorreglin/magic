@@ -59,7 +59,7 @@ void read_source( FILE * source_file, unsigned long size, char * string_dest ){
 }
 
 
-/* Schreibt alle Editionen und/oder Karten eines cJSON-Objekts in eine Datei */
+/* Schreibt alle Editionen eines cJSON-Objekts in eine Datei */
 void export_editions( cJSON * json, FILE * dest_file ){
     
     int     i;
