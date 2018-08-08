@@ -40,7 +40,6 @@ typedef struct
 */
 #define QDB_TYPE_IS_STRING 1
 #define QDB_TYPE_IS_DATE   2
-#define QDB_TYPE_IS_BOOL   4
 
 typedef struct
 {

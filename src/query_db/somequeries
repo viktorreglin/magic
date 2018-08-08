@@ -1,0 +1,9 @@
+../../bin/qdb_query magic2 Card "id = 'c033ad60b21f98f9142611ccc023c1c789f8c617'"
+../../bin/qdb_query magic2 Card "colorIdentity <> 'W'"
+../../bin/qdb_query magic2 Card "cmc between 4 and 6"
+../../bin/qdb_query magic2 Card "card.types = 'Creature'"
+
+# (3) Alle Karten mit roter, grüner, weißer oder farbloser Color Identity, deren Text "land" enthält.
+#../../bin/qdb_query magic2 Card "(colorIdentity in 'RGW') and (text like '*land*')"
+../../bin/qdb_query magic2 Card "colorIdentity in ('R','W')"
+../../bin/qdb_query magic2 Card "text like '*land*'"

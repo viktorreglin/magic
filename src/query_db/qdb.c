@@ -588,6 +588,7 @@ char * convertlike( char * psrc, int * srclen )
    buf = allocate_buffer( buf, &buflen, 2*(pe - psrc)+11 ); // 11 for escape ..
    pd = buf;
    escape_used = false;
+   ps = psrc;
    while( ps != pe )
    {
       switch( * ps )
@@ -665,6 +666,14 @@ static char * build_where( char * filter, char * table )
       else if( plike )
       {
          dolike = true;
+      }
+      else
+      {
+         copylen = strlen(psrc);
+         memcpy( pdst, psrc, copylen );
+         pdst += copylen;
+         destlen -= copylen;
+         psrc += copylen;
       }
 
       if( dotable )
@@ -770,8 +779,6 @@ QDB_RESULT * qdb_query( char * dbname, char * table, int * nrows, char * filter 
                pres->row[0].value[i].intval |= QDB_TYPE_IS_STRING;
             if( properties[i].isdate )
                pres->row[0].value[i].intval |= QDB_TYPE_IS_DATE;
-            else if( strcmp(properties[i].sqltype,"bool") == 0 )
-               pres->row[0].value[i].intval |= QDB_TYPE_IS_BOOL;
          }
          // row[1]..row[numofrows]:
          r = 0;
@@ -784,14 +791,11 @@ QDB_RESULT * qdb_query( char * dbname, char * table, int * nrows, char * filter 
                   row[i] = "";
                pres->row[r].value[i].strval = row[i];
                pres->row[r].value[i].intval = strtol( row[i], 0, 0 );
+               if( strcasecmp(row[i],"true") == 0 ) //???
+                  pres->row[r].value[i].intval = 1;
                if( pres->row[0].value[i].intval & QDB_TYPE_IS_DATE )
                {
                   pres->row[r].value[i].intval = 99;;; //@@@ Umrechnung Datumsstring auf Zahl fehlt hier
-               }
-               else if( pres->row[0].value[i].intval & QDB_TYPE_IS_BOOL )
-               {
-                  if( strcasecmp(row[i],"true") == 0 )
-                     pres->row[r].value[i].intval = 1;
                }
             }
          }
