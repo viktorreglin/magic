@@ -1,0 +1,42 @@
+# Magic table definition
+
+table Edition
+   name                 string(40)
+  *code                 string(10)
+   gathererCode         string(10)
+   magicCardsInfoCode   string(10)
+   releaseDate          date
+   border               string(10)
+   type                 string(20)
+   mkm_name             string(20)
+   mkm_id               int
+endtable
+
+table Card
+   artist               string(40)
+   cmc                  int
+   colorIdentity        color
+   colors               color
+   flavor               string
+  *id                   ident
+   imageName            string(80)
+   layout               string(20)
+   manaCost             string(30)
+   mciNumber            int
+   multiverseid         int
+   name                 string(70)
+   power                int
+   rarity               string(20)
+   reserved             bool
+   subtypes             string(40)
+   supertypes           string(40)
+   text                 string
+   toughness            int
+   type                 string(20)
+   types                string(40)
+   variations           string(40)
+  +edition_code         string(10) Edition(code)
+   pricecent            int
+   datadate             date
+   pricedate            date
+endtable
