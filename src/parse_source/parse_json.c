@@ -9,6 +9,9 @@
 #include "../lib/cJSON.h"
 #include "../lib/cJSON.c"
 
+/* Einfügen der QDB-Funktionen */
+#include "../include/qdb.h"
+
 
 /* Gibt ein Unterobjekt einer Karte/Edition an, zB den Kartennamen (als cJSON Objekt). */
 cJSON * trait_obj( cJSON * obj, char * trait_id ){
@@ -24,6 +27,7 @@ char obj_type( cJSON * trait_obj){
 
     if( cJSON_IsString( trait_obj ) ) return 's';
     if( cJSON_IsNumber( trait_obj ) ) return 'n';
+    if( cJSON_IsArray ( trait_obj ) ) return 'a';
 
     return 0;
 }
@@ -60,20 +64,28 @@ void read_source( FILE * source_file, unsigned long size, char * string_dest ){
 
 
 /* Schreibt alle Editionen eines cJSON-Objekts in eine Datei */
-void export_editions( cJSON * json, FILE * dest_file ){
+void export_editions( cJSON * json, char * db, char * table){
     
     int     i;
     cJSON * edt;
     cJSON * obj;
+    cJSON * sub_obj;
+    char    type_char;
+    char    str[12];
+    char    array_string[200];
+
+    QDB_ROW tr;
 
     /* Zu exportierende Eigenschaften von Editionen */
-    char  * edt_trait_ids[]     = { "border", "name", "code" };
-
+    char  * edt_trait_ids[] = { "name", "code", "gathererCode", "magicCardsInfoCode", "releaseDate", "border", "type", "mkm_name", "mkm_id" };
 
     /* Erste Edition ist das Kind des gesamten cJSON-Objekts */
     edt = json->child;
 
     do {
+
+        /* Neue Zeile in der Tabelle erzeugen */
+        tr = qdb_begin_row( db, table );
 
         /* Infos der Edition auslesen */
         for( i = 0; i < ( sizeof( edt_trait_ids ) / sizeof( edt_trait_ids[0] ) ); i++ ){
@@ -81,38 +93,65 @@ void export_editions( cJSON * json, FILE * dest_file ){
             /* obj ist zB der Editionsname (als cJSON Objekt) */
             obj = trait_obj( edt, edt_trait_ids[i] );
 
-            fprintf( dest_file, "%s \"%s\" ", edt_trait_ids[i], obj_string( obj ) );
+            /* Ist der Wert ein String, eine Zahl oder ein Array? */
+            type_char = obj_type( obj );
+            switch( type_char ){
+                case 's':
+                    /* Falls String, dann den String des cJSON-Objekts auslesen */
+                    qdb_set_value( tr, edt_trait_ids[i], obj_string( obj ) );
+                    break;
+
+                case 'n':
+                    /* Falls Zahl, dann den Value des cJSON-Objekts auslesen */
+                    sprintf( str, "%d", obj_int( obj ) );
+                    qdb_set_value( tr, edt_trait_ids[i], str );
+                    break;
+
+                case 'a':
+                    /* MOMENTAN NICHT IN BENUTZUNG
+                    Falls Array, dann den Array zu einem String zusammenfassen */
+                    array_string[0] = '\0';
+                    cJSON_ArrayForEach( sub_obj, obj ) {
+                        strcat( array_string, obj_string( sub_obj ) );
+                    }
+                    qdb_set_value( tr, edt_trait_ids[i], array_string );
+                    break;
+            }
 
         }
 
-        fprintf( dest_file, "\n" );
+        /* Zeile beenden */
+        qdb_end_row( tr );
 
         edt = edt->next;
+
     } while( edt != NULL );
 
 }
 
 
 /* Schreibt alle Karten eines cJSON-Objekts in eine Datei */
-void export_cards( cJSON * json, FILE * dest_file ){
+void export_cards( cJSON * json, char * db, char * table ){
     
-    int     i, j;
+    int     i;
     cJSON * edt;
     cJSON * cards;
     cJSON * card;
     cJSON * obj;
     cJSON * sub_obj;
     char    type_char;
+    char    str[12];
+    char    array_string[200];
+    QDB_ROW tr;
 
     /* Zu exportierende Eigenschaften von Editionen */
     char  * cards_id    = "cards";
     char  * edt_code_id = "code";   /* Editions-Code wird separat gespeichert um die Karten zuzuordnen */
-    char  * edt_id      = "Edition";
-    char    edt_code_string[3];     /* Editions-Codes sind immer 3 Zeichen lang */
-
     
     /* Zu exportierende Eigenschaften von Karten */
-    char  * card_trait_ids[] = { "cmc", "colorIdentity", "colors", "id", "manaCost", "name", "power", "rarity", "subtypes", "text", "toughness", "type", "types" };
+    char  * card_trait_ids[] = { "id", "types", "artist", "cmc", "colorIdentity", "colors", "flavor", "imageName", "layout", "manaCost",
+                                "mciNumber", "multiverseid", "name", "reserved", "text", "pricecent", "datadate", "pricedate", "type",
+                                "rarity", "variations", "power", "toughness", "subtypes", "supertypes" };
 
 
     /* Erste Edition ist das Kind des gesamten cJSON-Objekts */
@@ -120,57 +159,74 @@ void export_cards( cJSON * json, FILE * dest_file ){
 
     do {
 
-        /* Editions-Code auslesen, wird zur Kartenzuordnung benötigt */
-        obj = trait_obj( edt, edt_code_id );
-        sprintf( edt_code_string, "%s", obj_string( obj ) );
-
         /* Infos der Karten auslesen */
-        cards    = cJSON_GetObjectItemCaseSensitive( edt, cards_id );
+        cards = cJSON_GetObjectItemCaseSensitive( edt, cards_id );
         cJSON_ArrayForEach( card, cards ){
 
-            fprintf( dest_file, "%s \"%s\" ", edt_id, edt_code_string );
+            /* Neue Zeile in der Tabelle erzeugen */
+            tr = qdb_begin_row( db, table );
+            
+            /* Editions-Code auslesen, wird zur Kartenzuordnung benötigt */
+            obj = trait_obj( edt, edt_code_id );
+            qdb_set_value( tr, "edition_code" , obj_string( obj ) );
 
             for( i = 0; i < ( sizeof( card_trait_ids ) / sizeof( card_trait_ids[0] ) ); i++ ){
                 
                 /* obj ist zB der Kartenname (als cJSON Objekt) */
-                obj         = trait_obj( card, card_trait_ids[i] );
+                obj = trait_obj( card, card_trait_ids[i] );
 
-                /* Eigenschaften wie 'colors' bestehen aus Arrays */
-                if( cJSON_IsArray( obj ) ){
-                    fprintf( dest_file, "%s", card_trait_ids[i] );
-                    cJSON_ArrayForEach( sub_obj, obj ) fprintf( dest_file, " \"%s\" ", obj_string( sub_obj ) );
+                type_char = obj_type( obj );
+
+                switch( type_char ){
+                    case 's':
+                        /* Falls String, dann den String des cJSON-Objekts auslesen */
+                        qdb_set_value( tr, card_trait_ids[i], obj_string( obj ) );
+                        break;
+
+                    case 'n':
+                        /* Falls Zahl, dann den Value des cJSON-Objekts auslesen */
+                        sprintf( str, "%d", obj_int( obj ) );
+                        qdb_set_value( tr, card_trait_ids[i], str );
+                        break;
+
+                    case 'a':
+                        /* Falls Array, dann den Array zu einem String zusammenfassen */
+                        array_string[0] = '\0';
+                        cJSON_ArrayForEach( sub_obj, obj ) {
+                            strcat( array_string, obj_string( sub_obj ) );
+                        }
+                        qdb_set_value( tr, card_trait_ids[i], array_string );
+                        break;
                 }
-
-                type_char   = obj_type( obj );
-
-                if     ( type_char == 's' ) fprintf( dest_file, "%s \"%s\" ", card_trait_ids[i], obj_string( obj ) ); /* Im 'text' sind teilweise Zeilenumbrüche drin */
-                else if( type_char == 'n' ) fprintf( dest_file, "%s \"%d\" ", card_trait_ids[i], obj_int( obj ) );
             
             }
 
-            fprintf( dest_file, "\n" );
+            /* Zeile beenden */
+            qdb_end_row( tr );        
         }
 
+        
         edt = edt->next;
+
     } while( edt != NULL );
 
 }
 
 
 
-int main( int argc, char *argv[] ){
+int main(){
 
-    char          * source_filename   = "../../data/AllSets.json";
-    char          * editions_filename = "Editions.txt";
-    char          * cards_filename    = "Cards.txt";
-
+    char          * source_filename = "../../data/AllSets.json";
+    //char          * source_filename = "SomeSets.json";
+    char          * db              = "all_cards";
+    char          * editions_table  = "Edition";
+    char          * cards_table     = "Card";
+    
     FILE          * source_file;
-    FILE          * editions_file;
-    FILE          * cards_file;
-
     unsigned long   size;
     char          * file_contents;
     cJSON         * json;
+
 
 
     /* JSON-Datei öffnen */
@@ -186,18 +242,17 @@ int main( int argc, char *argv[] ){
     /* JSON parsen */
     json = cJSON_Parse( file_contents );
 
+    /* Alte Datenbank löschen */
+    system( "bash -c '../../bin/qdb_delete all_cards'" );
 
-    /* Editionen in Datei schreiben */
-    editions_file = fopen( editions_filename, "w" );
-    export_editions( json, editions_file );
-    fclose( editions_file );
+    /* Neue Datenbank anlegen */
+    system( "../../bin/qdb_create all_cards all_cards.tabledef" );
 
+    /* Editionen in Datenbank schreiben */
+    export_editions( json, db, editions_table);
 
-    /* Karten in Datei schreiben */
-    cards_file = fopen( cards_filename, "w" );
-    export_cards( json, cards_file );
-    fclose( cards_file );
-
+    /* Karten in Datenbank schreiben */
+    export_cards( json, db, cards_table );
 
     /* Aufräumen */
     cJSON_Delete( json );
