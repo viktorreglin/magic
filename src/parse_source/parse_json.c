@@ -7,7 +7,6 @@
 
 /* Einfügen der JSON library */
 #include "../lib/cJSON.h"
-#include "../lib/cJSON.c"
 
 /* Einfügen der QDB-Funktionen */
 #include "../include/qdb.h"
@@ -19,7 +18,7 @@ cJSON * trait_obj( cJSON * obj, char * trait_id ){
 }
 
 
-/* 
+/*
     Gibt an, ob ein Objekt ein String oder eine Zahl ist.
     cJSON->type speichert nur eine bit-flag, ist daher unpraktisch für Vergleiche.
 */
@@ -65,7 +64,7 @@ void read_source( FILE * source_file, unsigned long size, char * string_dest ){
 
 /* Schreibt alle Editionen eines cJSON-Objekts in eine Datei */
 void export_editions( cJSON * json, char * db, char * table){
-    
+
     int     i;
     cJSON * edt;
     cJSON * obj;
@@ -89,7 +88,7 @@ void export_editions( cJSON * json, char * db, char * table){
 
         /* Infos der Edition auslesen */
         for( i = 0; i < ( sizeof( edt_trait_ids ) / sizeof( edt_trait_ids[0] ) ); i++ ){
-                
+
             /* obj ist zB der Editionsname (als cJSON Objekt) */
             obj = trait_obj( edt, edt_trait_ids[i] );
 
@@ -132,7 +131,7 @@ void export_editions( cJSON * json, char * db, char * table){
 
 /* Schreibt alle Karten eines cJSON-Objekts in eine Datei */
 void export_cards( cJSON * json, char * db, char * table ){
-    
+
     int     i;
     cJSON * edt;
     cJSON * cards;
@@ -147,7 +146,7 @@ void export_cards( cJSON * json, char * db, char * table ){
     /* Zu exportierende Eigenschaften von Editionen */
     char  * cards_id    = "cards";
     char  * edt_code_id = "code";   /* Editions-Code wird separat gespeichert um die Karten zuzuordnen */
-    
+
     /* Zu exportierende Eigenschaften von Karten */
     char  * card_trait_ids[] = { "id", "types", "artist", "cmc", "colorIdentity", "colors", "flavor", "imageName", "layout", "manaCost",
                                 "mciNumber", "multiverseid", "name", "reserved", "text", "pricecent", "datadate", "pricedate", "type",
@@ -165,13 +164,13 @@ void export_cards( cJSON * json, char * db, char * table ){
 
             /* Neue Zeile in der Tabelle erzeugen */
             tr = qdb_begin_row( db, table );
-            
+
             /* Editions-Code auslesen, wird zur Kartenzuordnung benötigt */
             obj = trait_obj( edt, edt_code_id );
             qdb_set_value( tr, "edition_code" , obj_string( obj ) );
 
             for( i = 0; i < ( sizeof( card_trait_ids ) / sizeof( card_trait_ids[0] ) ); i++ ){
-                
+
                 /* obj ist zB der Kartenname (als cJSON Objekt) */
                 obj = trait_obj( card, card_trait_ids[i] );
 
@@ -198,14 +197,14 @@ void export_cards( cJSON * json, char * db, char * table ){
                         qdb_set_value( tr, card_trait_ids[i], array_string );
                         break;
                 }
-            
+
             }
 
             /* Zeile beenden */
-            qdb_end_row( tr );        
+            qdb_end_row( tr );
         }
 
-        
+
         edt = edt->next;
 
     } while( edt != NULL );
@@ -221,7 +220,7 @@ int main(){
     char          * db              = "all_cards";
     char          * editions_table  = "Edition";
     char          * cards_table     = "Card";
-    
+
     FILE          * source_file;
     unsigned long   size;
     char          * file_contents;
