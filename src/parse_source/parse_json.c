@@ -63,7 +63,7 @@ void read_source( FILE * source_file, unsigned long size, char * string_dest ){
 
 
 /* Schreibt alle Editionen eines cJSON-Objekts in eine Datei */
-void export_editions( cJSON * json, char * db, char * table){
+void export_editions( cJSON * json, char * db, char * table ){
 
     int     i;
     cJSON * edt;
@@ -215,8 +215,7 @@ void export_cards( cJSON * json, char * db, char * table ){
 
 int main(){
 
-    char          * source_filename = "../../data/AllSets.json";
-    //char          * source_filename = "SomeSets.json";
+    char          * source_filename = "SomeSets.json";
     char          * db              = "all_cards";
     char          * editions_table  = "Edition";
     char          * cards_table     = "Card";
