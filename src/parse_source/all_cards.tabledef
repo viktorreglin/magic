@@ -16,7 +16,7 @@ table Card
    artist               string(40)
    cmc                  int
    colorIdentity        color
-   colors               color
+   colors               string(20)
    flavor               string
   *id                   ident
    imageName            string(80)

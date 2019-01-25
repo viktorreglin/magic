@@ -256,5 +256,10 @@ int main(){
     cJSON_Delete( json );
     free( file_contents );
 
+    /* Datenbank anzeigen */
+    system( "../../bin/qdb_show all_cards" );
+    system( "../../bin/qdb_dump all_cards Edition" );
+    system( "../../bin/qdb_dump all_cards Card" );
+
     exit( 0 );
 }
