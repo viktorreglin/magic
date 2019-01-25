@@ -330,14 +330,22 @@ int i, x;
 
    for( i = 0; i < num; i++ )
    {
-      if( prop[i].isstring )
+      bool nonenulldate = false;
+      if( prop[i].isdate )
+      {
+         if( strcmp(prop[i].value,"0") == 0 )
+            prop[i].value = astrcpy("current_timestamp()");
+         else
+            nonenulldate = true;
+      }
+      if( prop[i].isstring  || nonenulldate )
          *dst++ = QUERY_STRING_DELIM;
       if( strcmp(prop[i].sqltype,"set") == 0 )
          x = setvalcpy( dst, prop[i].value );  // fuegt , zw. Elementen ein
       else
          x = qstrcpy( dst, prop[i].value );
       dst += strlen(prop[i].value) + x;
-      if( prop[i].isstring )
+      if( prop[i].isstring  || nonenulldate )
          *dst++ = QUERY_STRING_DELIM;
       *dst++ = QUERY_PAR_DELIM;
    }
@@ -369,11 +377,11 @@ char *  sql_buildquery( char * pattern, char * p1, char * p2, QDB_TABLEENTRY * p
       for( i = 0; i < num; i++ )
       {
          if( prop[i].value == 0 )
-         {
-            prop[i].value = prop[i].isstring ? "" : "0";
-            if( prop[i].isdate )
-               prop[i].value = "current_timestamp()";
-         }
+            prop[i].value = prop[i].isstring ? "" : astrcpy("0");
+
+         if( prop[i].isdate && (strlen(prop[i].value) <= 1) )
+            qlen += 19; // current_timestamp()
+
          qlen += strlen(prop[i].value) + qstrcpy( 0, prop[i].value ) + 3; // 3 for ,''
       }
    }
@@ -384,7 +392,7 @@ char *  sql_buildquery( char * pattern, char * p1, char * p2, QDB_TABLEENTRY * p
    if( withvalues )
       insertvalues( query, patt2, '?', num, prop );
 
-   printf( "*** query: %s\n", query );;;
+   // printf( "*** query: %s\n", query );;;
    sfree( patt2 );
    return query;
 }
@@ -405,7 +413,10 @@ static int fillvalue( QDB_TABLEENTRY * properties, char * name, char * value )
             fprintf( stderr, "WARNIMG: property %s has already a value (%s), ignoring new value(%s)\n", name, prop->value, value );
             return 0;
          }
-         prop->value = value;
+         if( value[0] == 0 ) // ""
+            prop->value = value;
+         else
+            prop->value = astrcpy(value);
          return 1;
       }
       prop++;
@@ -468,12 +479,22 @@ QDB_ROW qdb_begin_row( char * dbname, char * table )
 
 bool qdb_end_row( QDB_ROW tr )
 {
+   QDB_TABLEENTRY * prop;
    unsigned long rowsaffected = 0;
 
    if( !tr )
       return false;
 
    rowsaffected = insert( tr->dbname, tr->tablename, tr->properties, tr->numofprop );
+
+   prop = tr->properties;
+   while( prop->name )
+   {
+      if( prop->value && prop->value[0] )
+         sfree( prop->value );
+      prop++;
+   }
+
    sfree(tr->tablename);
    sfree(tr->dbname);
    sfree(tr->properties);
