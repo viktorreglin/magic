@@ -9,16 +9,18 @@ if [ $? -ne 0 ]; then
    exit
 fi
 
-mysql $1 -e "show tables;" | grep -v Tables_in_ > _tables.txt
+dir=${0%/*}
 
-echo 'echo $2' > _tables.1
-echo 'mysql $1 -e "desc $2;"' >> _tables.1
-chmod +x _tables.1
+mysql $1 -e "show tables;" | grep -v Tables_in_ > $dir/_tables.txt
 
-rm -f _tables.sh
-touch _tables.sh
-sed -e "s|^|./_tables.1 $1 |" _tables.txt >> _tables.sh
+echo 'echo $2' > $dir/_tables.1
+echo 'mysql $1 -e "desc $2;"' >> $dir/_tables.1
+chmod +x $dir/_tables.1
 
-. _tables.sh
+rm -f $dir/_tables.sh
+touch $dir/_tables.sh
+sed -e "s|^|./_tables.1 $1 |" _tables.txt >> $dir/_tables.sh
 
-rm _tables.*
+. $dir/_tables.sh
+
+rm $dir/_tables.*
