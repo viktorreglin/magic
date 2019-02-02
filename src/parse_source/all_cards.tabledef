@@ -22,19 +22,18 @@ table Card
    imageName            string(80)
    layout               string(20)
    manaCost             string(30)
-   mciNumber            int
+   mciNumber            string(20)
    multiverseid         int
    name                 string(70)
-   power                int
+   power                string(10)
    rarity               string(20)
    reserved             bool
    subtypes             string(40)
    supertypes           string(40)
    text                 string
-   toughness            int
-   type                 string(20)
+   toughness            string(10)
+   type                 string(40)
    types                string(40)
-   variations           string(40)
   +edition_code         string(10) Edition(code)
    pricecent            int
    datadate             date

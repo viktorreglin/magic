@@ -133,6 +133,7 @@ void export_editions( cJSON * json, char * db, char * table ){
 void export_cards( cJSON * json, char * db, char * table ){
 
     int     i;
+    int     j = 0;
     cJSON * edt;
     cJSON * cards;
     cJSON * card;
@@ -148,18 +149,20 @@ void export_cards( cJSON * json, char * db, char * table ){
     char  * edt_code_id = "code";   /* Editions-Code wird separat gespeichert um die Karten zuzuordnen */
 
     /* Zu exportierende Eigenschaften von Karten */
-    char  * card_trait_ids[] = { "id", "types", "artist", "cmc", "colorIdentity", "colors", "flavor", "imageName", "layout", "manaCost",
-                                "mciNumber", "multiverseid", "name", "reserved", "text", "pricecent", "datadate", "pricedate", "type",
-                                "rarity", "variations", "power", "toughness", "subtypes", "supertypes" };
+    char  * card_trait_ids[] = { "artist","cmc","colorIdentity","colors","flavor","id","imageName","layout",
+                                "manaCost","mciNumber","multiverseid","name","power","rarity","reserved",
+                                "subtypes","supertypes","text","toughness","type","types","edition_code",
+                                "pricecent","datadate","pricedate" };
+
 
 
     /* Erste Edition ist das Kind des gesamten cJSON-Objekts */
     edt = json->child;
 
     do {
-
         /* Infos der Karten auslesen */
         cards = cJSON_GetObjectItemCaseSensitive( edt, cards_id );
+        //printf( "Edition: %s\n", obj_string( trait_obj( edt, edt_code_id ) ) );
         cJSON_ArrayForEach( card, cards ){
 
             /* Neue Zeile in der Tabelle erzeugen */
@@ -167,9 +170,10 @@ void export_cards( cJSON * json, char * db, char * table ){
 
             /* Editions-Code auslesen, wird zur Kartenzuordnung benötigt */
             obj = trait_obj( edt, edt_code_id );
+            j += 1;
             qdb_set_value( tr, "edition_code" , obj_string( obj ) );
 
-            for( i = 0; i < ( sizeof( card_trait_ids ) / sizeof( card_trait_ids[0] ) ); i++ ){
+            for( i = 0; i < ( sizeof( card_trait_ids ) / sizeof( card_trait_ids[0] ) ); i++ ){                
 
                 /* obj ist zB der Kartenname (als cJSON Objekt) */
                 obj = trait_obj( card, card_trait_ids[i] );
@@ -203,8 +207,6 @@ void export_cards( cJSON * json, char * db, char * table ){
             /* Zeile beenden */
             qdb_end_row( tr );
         }
-
-
         edt = edt->next;
 
     } while( edt != NULL );
@@ -215,7 +217,7 @@ void export_cards( cJSON * json, char * db, char * table ){
 
 int main(){
 
-    char          * source_filename = "SomeSets.json";
+    char          * source_filename = "../../data/AllSets.json";
     char          * db              = "all_cards";
     char          * editions_table  = "Edition";
     char          * cards_table     = "Card";
@@ -255,11 +257,6 @@ int main(){
     /* Aufräumen */
     cJSON_Delete( json );
     free( file_contents );
-
-    /* Datenbank anzeigen */
-    system( "../../bin/qdb_show all_cards" );
-    system( "../../bin/qdb_dump all_cards Edition" );
-    system( "../../bin/qdb_dump all_cards Card" );
 
     exit( 0 );
 }
