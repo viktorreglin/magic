@@ -8,7 +8,6 @@ table Edition
    releaseDate          date
    border               string(10)
    type                 string(20)
-   booster              string(100)
    mkm_name             string(20)
    mkm_id               int
 endtable
@@ -17,23 +16,24 @@ table Card
    artist               string(40)
    cmc                  int
    colorIdentity        color
+   colors               string(20)
+   flavor               string
   *id                   ident
    imageName            string(80)
    layout               string(20)
    manaCost             string(30)
-   mciNumber            int
+   mciNumber            string(20)
    multiverseid         int
    name                 string(70)
-   power                int
+   power                string(10)
    rarity               string(20)
    reserved             bool
-   text                 string
-   toughness            int
    subtypes             string(40)
    supertypes           string(40)
-   type                 string(20)
+   text                 string
+   toughness            string(10)
+   type                 string(40)
    types                string(40)
-   variations           string(40)
   +edition_code         string(10) Edition(code)
    pricecent            int
    datadate             date
