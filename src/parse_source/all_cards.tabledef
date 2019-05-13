@@ -35,7 +35,8 @@ table Card
    type                 string(40)
    types                string(40)
   +edition_code         string(10) Edition(code)
-   pricecent            int
+#   pricecent            int
    datadate             date
    pricedate            date
+   priceeuro            float
 endtable

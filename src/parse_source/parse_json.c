@@ -4,12 +4,17 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h> /* Für stat() */
+#include <unistd.h> /* für sleep() */
+#include <time.h>
 
 /* Einfügen der JSON library */
 #include "../lib/cJSON.h"
 
 /* Einfügen der QDB-Funktionen */
 #include "../include/qdb.h"
+
+/* Einfügen der Preisabfrage */
+#include "../get_price/get_price.h"
 
 
 /* Gibt ein Unterobjekt einer Karte/Edition an, zB den Kartennamen (als cJSON Objekt). */
@@ -62,6 +67,27 @@ void read_source( FILE * source_file, unsigned long size, char * string_dest ){
 }
 
 
+/* Ersetzt Leerzeichen in einem String druch - */
+char * space_to_dash( char * str ){
+    /* Leerzeichen ersetzen
+    for ( char * p = str; ( p = strchr( p, ' ' ) ); ++p ){ // Doppelte Klammern sonst gibt gcc eine Warnung vor Zuweisung
+        *p = '-';
+    }
+    */
+    for ( int i = 0; i < strlen( str ); i++ ){
+        switch ( str[i] ){
+            case ':':
+                strcpy( &str[i], &str[i + 1] );
+
+            case ' ':
+                str[i] = '-';        
+        }
+    }
+
+    return str;
+}
+
+
 /* Schreibt alle Editionen eines cJSON-Objekts in eine Datei */
 void export_editions( cJSON * json, char * db, char * table ){
 
@@ -82,6 +108,8 @@ void export_editions( cJSON * json, char * db, char * table ){
     edt = json->child;
 
     do {
+        /* Namen der Edition ausgeben */
+        //printf( "Editionen: %s\n", cJSON_GetObjectItemCaseSensitive( edt, "mkm_name" )->valuestring );
 
         /* Neue Zeile in der Tabelle erzeugen */
         tr = qdb_begin_row( db, table );
@@ -130,7 +158,7 @@ void export_editions( cJSON * json, char * db, char * table ){
 
 
 /* Schreibt alle Karten eines cJSON-Objekts in eine Datei */
-void export_cards( cJSON * json, char * db, char * table ){
+void export_cards( cJSON * json, char * db, char * table, time_t start ){
 
     int     i;
     int     j = 0;
@@ -142,27 +170,43 @@ void export_cards( cJSON * json, char * db, char * table ){
     char    type_char;
     char    str[12];
     char    array_string[200];
+    cJSON * edition_json;
+    char  * edition;
     QDB_ROW tr;
+    float   price;
+
+    // Für die Preisabfrage
+    char    price_string[1000];
+    char    url_string[1000];
 
     /* Zu exportierende Eigenschaften von Editionen */
     char  * cards_id    = "cards";
     char  * edt_code_id = "code";   /* Editions-Code wird separat gespeichert um die Karten zuzuordnen */
+    char  * edt_name_id = "mkm_name";
 
     /* Zu exportierende Eigenschaften von Karten */
     char  * card_trait_ids[] = { "artist","cmc","colorIdentity","colors","flavor","id","imageName","layout",
                                 "manaCost","mciNumber","multiverseid","name","power","rarity","reserved",
                                 "subtypes","supertypes","text","toughness","type","types","edition_code",
-                                "pricecent","datadate","pricedate" };
-
+                                "datadate","pricedate" };
+    char  * edition_code_id = "edition_code";
 
 
     /* Erste Edition ist das Kind des gesamten cJSON-Objekts */
     edt = json->child;
 
     do {
+        /* Edition auslesen um den Kartenpreis abzufragen */
+        edition_json = cJSON_GetObjectItemCaseSensitive( edt, edt_name_id );
+        if ( cJSON_IsString( edition_json ) && edition_json->valuestring != NULL ){
+            edition = edition_json->valuestring;
+            edition = space_to_dash( edition );
+            printf( "\nKarten: %s\n", edition );
+        }
+
         /* Infos der Karten auslesen */
         cards = cJSON_GetObjectItemCaseSensitive( edt, cards_id );
-        //printf( "Edition: %s\n", obj_string( trait_obj( edt, edt_code_id ) ) );
+        
         cJSON_ArrayForEach( card, cards ){
 
             /* Neue Zeile in der Tabelle erzeugen */
@@ -171,9 +215,10 @@ void export_cards( cJSON * json, char * db, char * table ){
             /* Editions-Code auslesen, wird zur Kartenzuordnung benötigt */
             obj = trait_obj( edt, edt_code_id );
             j += 1;
-            qdb_set_value( tr, "edition_code" , obj_string( obj ) );
+            qdb_set_value( tr, edition_code_id , obj_string( obj ) );
 
             for( i = 0; i < ( sizeof( card_trait_ids ) / sizeof( card_trait_ids[0] ) ); i++ ){                
+                //printf( "%s\n", card_trait_ids[i] );
 
                 /* obj ist zB der Kartenname (als cJSON Objekt) */
                 obj = trait_obj( card, card_trait_ids[i] );
@@ -182,8 +227,22 @@ void export_cards( cJSON * json, char * db, char * table ){
 
                 switch( type_char ){
                     case 's':
-                        /* Falls String, dann den String des cJSON-Objekts auslesen */
+                        /* Falls anderer String, dann den String des cJSON-Objekts auslesen */
                         qdb_set_value( tr, card_trait_ids[i], obj_string( obj ) );
+
+                        /* Falls es der Kartenname ist, dann auch den Preis abfragen */
+                        if ( strcmp( card_trait_ids[i], "name" ) == 0 ){
+                            printf( "card: %s\n", obj_string( obj ) );
+                            
+                            url_string[0] = '\0';
+                            price_string[0] = '\0';
+                            price = get_price( space_to_dash( obj_string( obj ) ), edition, url_string, price_string );
+                            if ( price > 0 ) {
+                                sprintf( str, "%.2f", price );
+                                qdb_set_value( tr, "priceeuro", str );
+                            }
+                            //sleep( 3 );
+                        }
                         break;
 
                     case 'n':
@@ -207,6 +266,7 @@ void export_cards( cJSON * json, char * db, char * table ){
             /* Zeile beenden */
             qdb_end_row( tr );
         }
+        printf( "Elapsedd time: %.4ld\n", ( time( NULL ) - start ) );
         edt = edt->next;
 
     } while( edt != NULL );
@@ -228,6 +288,7 @@ int main(){
     cJSON         * json;
 
 
+    time_t start = time( NULL );
 
     /* JSON-Datei öffnen */
     source_file = fopen( source_filename, "r" );
@@ -249,10 +310,14 @@ int main(){
     system( "../../bin/qdb_create all_cards all_cards.tabledef" );
 
     /* Editionen in Datenbank schreiben */
-    export_editions( json, db, editions_table);
+    printf( "\nStarting editions export\n" );
+    printf( "Elapsed time: %.4ld\n", ( time( NULL ) - start ) );
+    export_editions( json, db, editions_table );
 
     /* Karten in Datenbank schreiben */
-    export_cards( json, db, cards_table );
+    printf( "\nStarting cards export\n" );
+    printf( "Elapsed time: %.4ld\n", ( time( NULL ) - start ) );
+    export_cards( json, db, cards_table, start );
 
     /* Aufräumen */
     cJSON_Delete( json );
