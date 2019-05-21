@@ -1,5 +1,2 @@
-pushd ../util
-./mk
-popd
 mkdir -p obj
 make $*

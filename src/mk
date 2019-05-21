@@ -1,0 +1,19 @@
+cd util
+./mk
+cd ..
+cd query_db
+./mk
+cd ..
+cd load_db
+make
+cd ..
+cd parse_source
+make
+cd ..
+cd get_price
+gcc -o ../../bin/get_price get_price.c
+cd ..
+cd statistics
+gcc -o ../../bin/statistics statistics.c
+cd ..
+
