@@ -80,7 +80,7 @@ char * space_to_dash( char * str ){
                 strcpy( &str[i], &str[i + 1] );
 
             case ' ':
-                str[i] = '-';        
+                str[i] = '-';
         }
     }
 
@@ -206,7 +206,7 @@ void export_cards( cJSON * json, char * db, char * table, time_t start ){
 
         /* Infos der Karten auslesen */
         cards = cJSON_GetObjectItemCaseSensitive( edt, cards_id );
-        
+
         cJSON_ArrayForEach( card, cards ){
 
             /* Neue Zeile in der Tabelle erzeugen */
@@ -217,7 +217,7 @@ void export_cards( cJSON * json, char * db, char * table, time_t start ){
             j += 1;
             qdb_set_value( tr, edition_code_id , obj_string( obj ) );
 
-            for( i = 0; i < ( sizeof( card_trait_ids ) / sizeof( card_trait_ids[0] ) ); i++ ){                
+            for( i = 0; i < ( sizeof( card_trait_ids ) / sizeof( card_trait_ids[0] ) ); i++ ){
                 //printf( "%s\n", card_trait_ids[i] );
 
                 /* obj ist zB der Kartenname (als cJSON Objekt) */
@@ -233,7 +233,7 @@ void export_cards( cJSON * json, char * db, char * table, time_t start ){
                         /* Falls es der Kartenname ist, dann auch den Preis abfragen */
                         if ( strcmp( card_trait_ids[i], "name" ) == 0 ){
                             printf( "card: %s\n", obj_string( obj ) );
-                            
+
                             url_string[0] = '\0';
                             price_string[0] = '\0';
                             price = get_price( space_to_dash( obj_string( obj ) ), edition, url_string, price_string );
