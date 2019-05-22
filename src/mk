@@ -10,9 +10,6 @@ cd ..
 cd parse_source
 make
 cd ..
-cd get_price
-gcc -o ../../bin/get_price get_price.c -lcurl
-cd ..
 cd statistics
 gcc -o ../../bin/statistics statistics.c
 cd ..
