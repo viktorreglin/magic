@@ -1,32 +1,25 @@
-// Downloads and unpacks the cards database.
+// Preissssss
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <curl/curl.h>
-#include <string.h>
-#include <unistd.h>
-#include <sys/types.h>
-
-#define FILELOCATION "../../data/cardprice.html"
+#include "get_price.h"
 
 void get_url( char * card, char * edition, char * url ){
    
-   char * url_beginning = "https://www.magickartenmarkt.de/Products/Singles/";
+   char * url_beginning = "https://www.cardmarket.com/en/Magic/Products/Singles/";
    sprintf( url, "%s%s%s%s", url_beginning, edition, "/", card );
+   //printf( "\nURL: %s\n", url );
    
 }
 
 
-void download_page( FILE * fp, char * url ){
+int download_page( FILE * fp, char * url ){
    CURL * curl;
    CURLcode res;
-   char price[8];
+   int found = -1;
    
    char file_name[FILENAME_MAX] = FILELOCATION;
    
    curl = curl_easy_init();
-   if ( curl )
-   {
+   if ( curl ){
       fp = fopen( file_name,"wb" );
       curl_easy_setopt( curl, CURLOPT_URL, url );
       curl_easy_setopt( curl, CURLOPT_USERAGENT, "curl/7.39.0" );
@@ -34,13 +27,16 @@ void download_page( FILE * fp, char * url ){
       curl_easy_setopt( curl, CURLOPT_WRITEDATA, fp );
       res = curl_easy_perform( curl );
       curl_easy_cleanup( curl );
-            
+      
+      if( filelength( fp ) > 0 ) found = res;
       fclose( fp );
    }
+
+   return found;
 }
 
 
-static long filelength( FILE * fp )
+long filelength( FILE * fp )
 {
    long ende;
 
@@ -51,10 +47,10 @@ static long filelength( FILE * fp )
 }
 
 
-void price_string( FILE * fp, char * price ){
-   char * string_before_price = "Preistendenz:";//"Preistendenz:</td><td class=\"outerBottom outerRight col_Odd col_1 cell_2_1\">";//
-   char * string_after_price = " &#x20AC;</td>";//" &#x20AC;</td></tr></tbody></table></div></div></div></div></div><div class=\"MKMBlockFooter brad0033 skmgrad\">";
-   int char_delta = 76;
+int price_string( FILE * fp, char * price ){
+   char * string_before_price = "Price Trend</dt>";
+   char * string_after_price = " &#x20AC;</span>";
+   int char_delta = 49; // Anzahl Zeichen von Beginn string_before_price bis direkt vor dem wirklichen Preis
    char * start;
    char * end;
    int len;
@@ -70,9 +66,11 @@ void price_string( FILE * fp, char * price ){
    start = strstr( fp_string, string_before_price );
    end = strstr( fp_string, string_after_price );
    len = end - start;
-   printf( "len: %d\n", len  );
    
-   sprintf( price, "%.*s", len-char_delta, start+char_delta );
+   if( len ){
+      sprintf( price, "%.*s", len-char_delta, start+char_delta );
+      return 1;
+   } else return 0;
 }
 
 
@@ -99,25 +97,23 @@ char * format_name( char * name ){
 }
 
 
-int main( void ){
-   char * card = "Price+of+Progress";
-   char * edition = "Exodus";
-   char url[256];
-   char price[1000];
+float get_price( char * card, char * edition, char * url, char * price ){
    float cardprice;
-   FILE * fp;
+   FILE * fp = 0;
+   int got_price = 0;
    
    get_url( card, edition, url );
    
-   download_page( fp, url );
-   
-   fp = fopen( FILELOCATION, "r" );
-   price_string( fp, price );
-   fclose ( fp );
-   
-   cardprice = price_to_number( price );
-   
-   printf( "%f\n", cardprice );
-   
-   return 0;
+   if( download_page( fp, url ) >= 0 ){
+      fp = fopen( FILELOCATION, "r" );
+      got_price = price_string( fp, price );
+      fclose ( fp );
+      
+      if( got_price ){
+         cardprice = price_to_number( price );
+         return cardprice;
+      }
+   }
+
+   return -1;
 }
