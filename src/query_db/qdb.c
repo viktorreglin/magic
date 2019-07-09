@@ -392,7 +392,7 @@ char *  sql_buildquery( char * pattern, char * p1, char * p2, QDB_TABLEENTRY * p
    if( withvalues )
       insertvalues( query, patt2, '?', num, prop );
 
-   // printf( "*** query: %s\n", query );;;
+   printf( "*** sql query[ %s ] ***\n", query );;;
    sfree( patt2 );
    return query;
 }
@@ -643,70 +643,30 @@ char * convertlike( char * psrc, int * srclen )
 
 
 static char * build_where( char * filter, char * table )
-{  // in der ersten Version fast unveraendert lassen, dafuer nur Namen aus 'table' zugelassen (noch keine Joins)
-   // Aenderungen : table.name --> name; like '*?%_\' -> like '%_\%\_\\' escape '\';
+{  // in der ersten Version fast unveraendert lassen
+   // Aenderungen : like '*?%_\' -> like '%_\%\_\\' escape '\';
    static char * buf = 0;
    static int buflen = 0;
 
    char * pdst;
    char * psrc;
-   char * ptable;
    char * plike;
    char * slike;
-   char tabledot[MAX_TABLE_NAME_LENGTH + 2];
-   int tabledotlen, destlen, copylen, slen;
+   int destlen, copylen, slen;
 
    if( strlen(table) > MAX_TABLE_NAME_LENGTH )
    {
       fprintf( stderr, "internal error in qdb_query: table name '%s' too long (> %d chars)\n", table, MAX_TABLE_NAME_LENGTH );
       return "";
    }
-   strcpy( tabledot, table );
-   strcat( tabledot, "." );
-   tabledotlen = strlen(tabledot);
-
    buf = allocate_buffer( buf, &buflen, 2*strlen(filter)+1 );
    pdst = buf;
    destlen = buflen;
    psrc = filter;
-   ptable = strcasestr( psrc, tabledot );
    plike  = strcasestr( psrc, "like");
    while( *psrc )
    {
-      bool dotable = false;
-      bool dolike  = false;
-      if( ptable && plike )
-      {
-         dotable = ptable <= plike;
-         dolike  = !dotable;
-      }
-      else if( ptable )
-      {
-         dotable = true;
-      }
-      else if( plike )
-      {
-         dolike = true;
-      }
-      else
-      {
-         copylen = strlen(psrc);
-         memcpy( pdst, psrc, copylen );
-         pdst += copylen;
-         destlen -= copylen;
-         psrc += copylen;
-      }
-
-      if( dotable )
-      {
-         copylen = ptable - psrc;
-         memcpy( pdst, psrc, copylen );
-         pdst += copylen;
-         destlen -= copylen;
-         psrc = ptable + tabledotlen;
-         ptable = strcasestr( psrc, tabledot );
-      }
-      if( dolike )
+      if( plike )
       {
          copylen = plike - psrc + 4;
          memcpy( pdst, psrc, copylen );
@@ -727,6 +687,14 @@ static char * build_where( char * filter, char * table )
          pdst += slen;
          destlen -= slen;
          plike  = strcasestr( psrc, "like");
+      }
+      else
+      {
+         copylen = strlen(psrc);
+         memcpy( pdst, psrc, copylen );
+         pdst += copylen;
+         destlen -= copylen;
+         psrc += copylen;
       }
    }
    return buf;
