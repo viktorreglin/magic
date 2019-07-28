@@ -94,7 +94,7 @@ bool       qdb_set_value( QDB_ROW tr, char * property, char * value ); // einen 
 
 
 // Abfrage und Änderung einer Datenbank
-QDB_RESULT * qdb_query( char * dbname, char * table, int * nrows, char * filter );
+QDB_RESULT * qdb_query( char * dbname, char * table, int * nrows, char * filter, bool printquery );
 // liefert Ergebnis in allozierter Struktur, Anzahl der Zeilen wird auch über *nrows zurückgegeben, filter: Sprache siehe query_db_if.txt
 void qdb_free( QDB_RESULT * presult ); // gibt den Result-Speicher wieder frei
 

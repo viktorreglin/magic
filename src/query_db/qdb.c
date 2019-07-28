@@ -392,7 +392,6 @@ char *  sql_buildquery( char * pattern, char * p1, char * p2, QDB_TABLEENTRY * p
    if( withvalues )
       insertvalues( query, patt2, '?', num, prop );
 
-   printf( "*** sql query[ %s ] ***\n", query );;;
    sfree( patt2 );
    return query;
 }
@@ -650,63 +649,122 @@ static char * build_where( char * filter, char * table )
 
    char * pdst;
    char * psrc;
-   char * plike;
-   char * slike;
-   int destlen, copylen, slen;
+   char * wordstart;
+   int destlen;
+   bool instring, inword, wasinword;
 
    if( strlen(table) > MAX_TABLE_NAME_LENGTH )
    {
       fprintf( stderr, "internal error in qdb_query: table name '%s' too long (> %d chars)\n", table, MAX_TABLE_NAME_LENGTH );
       return "";
    }
-   buf = allocate_buffer( buf, &buflen, 2*strlen(filter)+1 );
+   buf = allocate_buffer( buf, &buflen, 4*strlen(filter)+1 );
    pdst = buf;
    destlen = buflen;
    psrc = filter;
-   plike  = strcasestr( psrc, "like");
+   wordstart = 0;
+   instring = false;
+   inword = false;
+   wasinword = false;
    while( *psrc )
    {
-      if( plike )
+      char c;
+      if( destlen < 2 )
       {
-         copylen = plike - psrc + 4;
-         memcpy( pdst, psrc, copylen );
-         pdst += copylen;
-         destlen -= copylen;
-         psrc += copylen;
-         slike = convertlike( psrc, &copylen );
-         psrc += copylen;
-         slen = strlen( slike );
-         if( slen >= destlen )
-         {
-            *pdst = 0;
-            buf = allocate_buffer( buf, &buflen, buflen+2*slen );
-            pdst = buf + strlen(buf);
-            destlen = buflen - (pdst-buf);
+         *pdst = 0;
+         buf = allocate_buffer( buf, &buflen, buflen+100 );
+         pdst = buf + strlen(buf);
+         destlen = buflen - (pdst-buf);
+      }
+      c = *psrc;
+      if( c == '\'' )
+         instring = !instring;
+      if( instring )
+      {
+         *pdst++ = *psrc++;
+         destlen--;
+         continue;
+      }
+      wasinword = inword;
+      inword = (inword && isdigit(c)) || isalpha(c) || (c == '.');
+      if( inword )
+      {
+         if( wasinword )
+         { // innerhalb eines Wortes
+            if( c == '.')
+            {
+               *psrc = 0;
+               // printf( " +++tablename(%s)\n", wordstart );;;
+               *psrc = '.';
+            }
          }
-         memcpy( pdst, slike, slen );
-         pdst += slen;
-         destlen -= slen;
-         plike  = strcasestr( psrc, "like");
+         else
+         { // Wortanfang
+            wordstart = psrc;
+         }
+         psrc++;
       }
       else
       {
-         copylen = strlen(psrc);
-         memcpy( pdst, psrc, copylen );
-         pdst += copylen;
-         destlen -= copylen;
-         psrc += copylen;
+         if( wasinword )
+         { // Wortende
+            char * copysrc;
+            int srcjump, copylen;
+            bool islike;
+
+            *psrc = 0;
+            if( strcasecmp(wordstart,"like") ==  0 )
+            {
+               islike = true;
+               *psrc = c;
+               copysrc = convertlike( psrc, &srcjump );
+               psrc += srcjump;
+               copylen = strlen(copysrc) + 4;
+            }
+            else
+            {
+               islike = false;
+               *psrc = c;
+               copylen = psrc - wordstart;
+               copysrc = wordstart;
+            }
+            if( destlen < copylen )
+            {
+               *pdst = 0;
+               buf = allocate_buffer( buf, &buflen, buflen+2*copylen );
+               pdst = buf + strlen(buf);
+               destlen = buflen - (pdst-buf);
+            }
+            if( islike )
+            {
+               strcpy( pdst, "like" );
+               pdst += 4;
+               destlen -= 4;
+               copylen -= 4;
+            }
+            memcpy( pdst, copysrc, copylen );
+            pdst += copylen;
+            destlen -= copylen;
+            wordstart = 0;
+         }
+         else
+         { // ausserhalb eines Wortes
+            *pdst++ = *psrc++;
+            destlen--;
+         }
       }
    }
    return buf;
 }
 
 
-QDB_RESULT * qdb_query( char * dbname, char * table, int * nrows, char * filter )
+QDB_RESULT * qdb_query( char * dbname, char * table, int * nrows, char * filter, bool printquery )
 {
    MYSQL * conn;
    MYSQL_RES * result;
    MYSQL_ROW   row;
    int i, r, nfields, numofprop;
+   char * where;
    char * query;
    QDB_TABLEENTRY * properties;
    QDB_RESULT * pres;
@@ -729,7 +787,17 @@ QDB_RESULT * qdb_query( char * dbname, char * table, int * nrows, char * filter 
    if( !properties )
       return 0;
 
-   query = sql_buildquery( pattern, table, build_where(filter,table), properties, numofprop, false );
+   where = build_where(filter,table);
+   query = sql_buildquery( pattern, table, where, properties, numofprop, false );
+   if( printquery )
+   {
+      //printf( " *** pattern = [%s]\n", pattern );
+      //printf( " *** table   = [%s]\n", table );
+      //printf( " *** filter  = [%s]\n", filter );
+      //printf( " *** where   = [%s]\n", where );
+
+      printf( " *** sql query[%s] ***\n", query );
+   }
 
    // zur Datenbank
    if( mysql_query( conn, query ) != 0 )

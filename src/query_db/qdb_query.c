@@ -7,7 +7,7 @@
 
 static void usage( void )
 {
-   printf( "USAGE: qdb_query DBName Table Query\n" );
+   printf( "USAGE: qdb_query [-p] DBName Table Query\n" );
    exit(1);
 }
 
@@ -42,16 +42,29 @@ int main( int argc, char * argv[] )
    char * query;
    QDB_RESULT * pres;
    int nrows, i;
+   bool printquery = false;
+   int idx = 1;
 
-   if( argc != 4 )
+   if( argc < 1 )
       usage();
 
-   db    = argv[1];
-   table = argv[2];
-   query = argv[3];
+   if( argv[1][0] == '-' )
+   {
+      if( strcmp(argv[1],"-p") == 0 )
+         printquery = true;
+      else
+         usage();
+      idx = 2;
+   }
+   if( argc != (idx+3) )
+      usage();
+
+   db    = argv[idx++];
+   table = argv[idx++];
+   query = argv[idx++];
 
    printf( "DB=%s\nTable=%s\nQuery='%s'\n", db, table, query );
-   pres = qdb_query( db, table, &nrows, query );
+   pres = qdb_query( db, table, &nrows, query, printquery );
    if( nrows < 0 )
       printf( "error, no result\n" );
    else if ( nrows == 0 )
