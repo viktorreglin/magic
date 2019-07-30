@@ -11,4 +11,4 @@ $query -p magic2 Card "(colorIdentity in ('R','G','W') and (text like '*you*'))"
 
 # (5) Alle Karten aus Editionen, die mit "un" beginnen.
 $query -p magic2 Edition "Edition.name like 'un*'"
-#$query -p magic2 Card "Edition.name like 'un*'"
+$query -p magic2 Card "Edition.name like 'un*'"

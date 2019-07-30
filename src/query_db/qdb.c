@@ -18,6 +18,18 @@
 extern char * strcasestr( char *, char * );
 
 
+static bool iskeyword( char * w )
+{
+   static char * keyw[] = { "AND", "OR", "NOT", "IN", "BETWEEN", "IS", "NULL", "LIKE" };
+   for( int i = 0; i < arraysize(keyw); i++ )
+   {
+      if( strcasecmp(w,keyw[i]) == 0 )
+         return true;
+   }
+   return false;
+}
+
+
 static bool match( char * srctype, char * typepattern, STR * pparam1 )
 {
    char * parpattern;
@@ -294,19 +306,27 @@ static int setvalcpy( char * dst, char * src ) // commata zw. elementen, returns
 }
 
 
-static void insertnames( char * query, char * pattern, char mark, int num, QDB_TABLEENTRY * prop )
+static void insertnames( char * query, char * pattern, char mark, int num, QDB_TABLEENTRY * prop, char * tablename )
 {
 char * dst;
 char * pat;
-int i, x;
+int i, x, tablenamelen;
 
    dst = strchr( query, mark );
    pat = strchr( pattern, mark );
    if( !dst || !pat )
       return; // nothing to do
 
+   tablenamelen = strlen(tablename);
+
    for( i = 0; i < num; i++ )
    {
+      if( tablenamelen > 0 )
+      {
+         strcpy( dst, tablename );
+         dst += tablenamelen;
+         strcpy( dst++, "." );
+      }
       x = qstrcpy( dst, prop[i].name );
       dst += strlen(prop[i].name) + x;
       *dst++ = QUERY_PAR_DELIM;
@@ -355,12 +375,15 @@ int i, x;
 }
 
 
-char *  sql_buildquery( char * pattern, char * p1, char * p2, QDB_TABLEENTRY * prop, int num, bool withvalues )
+char *  sql_buildquery( char * pattern, char * p1, char * p2, QDB_TABLEENTRY * prop, int num, bool withvalues, char * tablename )
 {
-   int i, qlen;
+   int i, qlen, tablenamelen;
    char * patt2; // pattern w parameters
    char * query;
 
+   if( !tablename )
+      tablename = "";
+   tablenamelen = strlen(tablename);
    if( !p1 )
       p1 = "";
    if( !p2 )
@@ -370,7 +393,7 @@ char *  sql_buildquery( char * pattern, char * p1, char * p2, QDB_TABLEENTRY * p
    sprintf( patt2, pattern, p1, p2 );
 
    for( i = 0; i < num; i++ )
-      qlen += strlen(prop[i].name) + 1; // 1 for ,
+      qlen += strlen(prop[i].name) + 2 + tablenamelen; // 2 for , and .
 
    if(withvalues)
    {
@@ -388,7 +411,7 @@ char *  sql_buildquery( char * pattern, char * p1, char * p2, QDB_TABLEENTRY * p
 
    query = salloc(qlen+1);
    strcpy(query,patt2);
-   insertnames( query, patt2, '!', num, prop );
+   insertnames( query, patt2, '!', num, prop, tablename );
    if( withvalues )
       insertvalues( query, patt2, '?', num, prop );
 
@@ -436,7 +459,7 @@ static unsigned long insert( char * db, char * table, QDB_TABLEENTRY * propertie
    if( !conn )
       return 0;
 
-   query = sql_buildquery( pattern, table, 0, properties, numofprop, true );
+   query = sql_buildquery( pattern, table, 0, properties, numofprop, true, 0 );
 
    // zur Datenbank
    if( mysql_query( conn, query ) != 0 )
@@ -641,7 +664,7 @@ char * convertlike( char * psrc, int * srclen )
 }
 
 
-static char * build_where( char * filter, char * table )
+static char * build_where( char * filter, char * table, char * foreigntable )
 {  // in der ersten Version fast unveraendert lassen
    // Aenderungen : like '*?%_\' -> like '%_\%\_\\' escape '\';
    static char * buf = 0;
@@ -650,10 +673,11 @@ static char * build_where( char * filter, char * table )
    char * pdst;
    char * psrc;
    char * wordstart;
-   int destlen;
-   bool instring, inword, wasinword;
+   int tablenamelen, destlen, copylen;
+   bool instring, inword, wasinword, owntab, dotown;
 
-   if( strlen(table) > MAX_TABLE_NAME_LENGTH )
+   tablenamelen = strlen(table);
+   if( tablenamelen > MAX_TABLE_NAME_LENGTH )
    {
       fprintf( stderr, "internal error in qdb_query: table name '%s' too long (> %d chars)\n", table, MAX_TABLE_NAME_LENGTH );
       return "";
@@ -693,14 +717,29 @@ static char * build_where( char * filter, char * table )
          { // innerhalb eines Wortes
             if( c == '.')
             {
+               owntab = false;
                *psrc = 0;
                // printf( " +++tablename(%s)\n", wordstart );;;
+               if( strcasecmp(wordstart,table) == 0 )
+               {
+                  dotown = true;
+               }
+               else
+               {
+                  if( foreigntable )
+                  {
+                     strncpy( foreigntable, wordstart, MAX_TABLE_NAME_LENGTH );
+                     foreigntable[MAX_TABLE_NAME_LENGTH] = 0;
+                  }
+               }
                *psrc = '.';
             }
          }
          else
          { // Wortanfang
             wordstart = psrc;
+            owntab  = true;
+            dotown = false;
          }
          psrc++;
       }
@@ -709,13 +748,14 @@ static char * build_where( char * filter, char * table )
          if( wasinword )
          { // Wortende
             char * copysrc;
-            int srcjump, copylen;
+            int srcjump;
             bool islike;
 
             *psrc = 0;
             if( strcasecmp(wordstart,"like") ==  0 )
             {
                islike = true;
+               owntab = false;
                *psrc = c;
                copysrc = convertlike( psrc, &srcjump );
                psrc += srcjump;
@@ -724,9 +764,13 @@ static char * build_where( char * filter, char * table )
             else
             {
                islike = false;
+               if( iskeyword(wordstart) )
+                  owntab = false;
                *psrc = c;
                copylen = psrc - wordstart;
                copysrc = wordstart;
+               if( owntab )
+                  copylen += tablenamelen + 1;
             }
             if( destlen < copylen )
             {
@@ -742,7 +786,18 @@ static char * build_where( char * filter, char * table )
                destlen -= 4;
                copylen -= 4;
             }
+            else if( owntab )
+            {
+               strcpy( pdst, table );
+               pdst += tablenamelen;
+               strcpy( pdst++, "." );
+               destlen -= tablenamelen+1;
+               copylen -= tablenamelen+1;
+            }
+
             memcpy( pdst, copysrc, copylen );
+            if( dotown )
+               memcpy( pdst, table, tablenamelen ); // Rechtschreibung korrigieren
             pdst += copylen;
             destlen -= copylen;
             wordstart = 0;
@@ -757,7 +812,6 @@ static char * build_where( char * filter, char * table )
    return buf;
 }
 
-
 QDB_RESULT * qdb_query( char * dbname, char * table, int * nrows, char * filter, bool printquery )
 {
    MYSQL * conn;
@@ -766,8 +820,11 @@ QDB_RESULT * qdb_query( char * dbname, char * table, int * nrows, char * filter,
    int i, r, nfields, numofprop;
    char * where;
    char * query;
+   char * tabexpr;
    QDB_TABLEENTRY * properties;
    QDB_RESULT * pres;
+   char foreigntable[MAX_TABLE_NAME_LENGTH+1];
+
    static char pattern[] = "select ! from %s where %s;"; // ! = properties
 
    if( !nrows )
@@ -787,8 +844,14 @@ QDB_RESULT * qdb_query( char * dbname, char * table, int * nrows, char * filter,
    if( !properties )
       return 0;
 
-   where = build_where(filter,table);
-   query = sql_buildquery( pattern, table, where, properties, numofprop, false );
+   foreigntable[0] = 0;
+   where = build_where( filter, table, foreigntable );
+   tabexpr = table;
+   if( foreigntable[0] )
+      tabexpr = asprintf( "%s join %s", table, foreigntable );
+   query = sql_buildquery( pattern, tabexpr, where, properties, numofprop, false, table );
+   if( foreigntable[0] )
+      sfree(tabexpr);
    if( printquery )
    {
       //printf( " *** pattern = [%s]\n", pattern );
