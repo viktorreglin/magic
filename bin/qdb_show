@@ -19,7 +19,7 @@ chmod +x $dir/_tables.1
 
 rm -f $dir/_tables.sh
 touch $dir/_tables.sh
-sed -e "s|^|./_tables.1 $1 |" _tables.txt >> $dir/_tables.sh
+sed -e "s|^|$dir/_tables.1 $1 |" $dir/_tables.txt >> $dir/_tables.sh
 
 . $dir/_tables.sh
 
