@@ -821,6 +821,42 @@ static char * build_where( char * filter, char * table, char * foreigntable )
    return buf;
 }
 
+
+static char * build_join( char * dbname, char * tab, QDB_TABLEENTRY * tab_prop, int numof_tab_prop, char * foreign )
+{
+   int numof_foreign_prop, i, key1, key2;
+   QDB_TABLEENTRY * foreign_prop;
+
+   foreign_prop = qdb_get_properties( dbname, foreign, &numof_foreign_prop );
+   if( !foreign_prop )
+      return asprintf( "%s join %s", tab, foreign );
+
+   // suche key 2 in tab und key 1 in foreign fuer on-Klausel
+   key2 = 0;
+   key1 = 0;
+   for( i = 0; i < numof_tab_prop; i++ )
+   {
+      if( tab_prop[i].key == 2 )
+      {
+         key2 = i;
+         break;
+      }
+   }
+   for( i = 0; i < numof_foreign_prop; i++ )
+   {
+      if( foreign_prop[i].key == 1 )
+      {
+         key1 = i;
+         break;
+      }
+   }
+   if( key1 * key2 == 0 )
+      return asprintf( "%s join %s", tab, foreign );
+
+   return asprintf( "%s inner join %s on %s.%s = %s.%s", tab, foreign, tab, tab_prop[key2].name, foreign, foreign_prop[key1].name );
+}
+
+
 QDB_RESULT * qdb_query( char * dbname, char * table, int * nrows, char * filter, bool printquery )
 {
    MYSQL * conn;
@@ -848,16 +884,17 @@ QDB_RESULT * qdb_query( char * dbname, char * table, int * nrows, char * filter,
    if( !conn )
       return 0;
 
-
    properties = qdb_get_properties( dbname, table, &numofprop );
    if( !properties )
       return 0;
 
    foreigntable[0] = 0;
    where = build_where( filter, table, foreigntable );
-   tabexpr = table;
+   tabexpr  = table;
    if( foreigntable[0] )
-      tabexpr = asprintf( "%s join %s", table, foreigntable );
+   {
+      tabexpr = build_join( dbname, table, properties, numofprop, foreigntable );
+   }
    query = sql_buildquery( pattern, tabexpr, where, properties, numofprop, false, table );
    if( foreigntable[0] )
       sfree(tabexpr);
