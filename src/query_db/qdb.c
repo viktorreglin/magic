@@ -187,7 +187,7 @@ QDB_TABLEENTRY * qdb_get_properties( char * db, char * table, int * pnum )
    if( !conn )
       return 0;
 
-   sprintf( query, "select column_name, data_type from columns where table_schema='%s' and table_name='%s';", db, table );
+   sprintf( query, "select column_name, data_type, column_key from columns where table_schema='%s' and table_name='%s';", db, table );
 
    if( mysql_query( conn, query ) != 0 )
    {
@@ -202,7 +202,7 @@ QDB_TABLEENTRY * qdb_get_properties( char * db, char * table, int * pnum )
          proptab = salloc( (maxtablerows+1) * sizeof(QDB_TABLEENTRY) );
 
          nfields = mysql_num_fields(result);
-         if( nfields != 2 )
+         if( nfields != 3 )
          {
             fprintf( stderr, "qdb_get_properties: internal error" );
             exit( 3 );
@@ -216,6 +216,13 @@ QDB_TABLEENTRY * qdb_get_properties( char * db, char * table, int * pnum )
                proptab[r].sqltype  = astrcpy( row[1] );
                proptab[r].isstring = typeisstring(proptab[r].sqltype);
                proptab[r].isdate   = strcasecmp(proptab[r].sqltype, "datetime") == 0;
+
+               proptab[r].key      = 0;
+               if( strcasecmp(row[2],"PRI") == 0 )
+                  proptab[r].key   = 1;
+               else if( (strcasecmp(row[2],"MUL") == 0) || (strcasecmp(row[2],"UNI") == 0) )
+                  proptab[r].key   = 2;
+
                proptab[r].value    = 0;
             }
             r++;
@@ -227,6 +234,7 @@ QDB_TABLEENTRY * qdb_get_properties( char * db, char * table, int * pnum )
             proptab[r].sqltype  = 0;
             proptab[r].isstring = false;
             proptab[r].isdate   = false;
+            proptab[r].key      = 0;
             proptab[r].value    = 0;
          }
       }

@@ -17,6 +17,7 @@ typedef struct
    char * sqltype;
    bool   isstring;
    bool   isdate;
+   int    key; // 1 = primary, 2 = foreign
    char * value;
 } QDB_TABLEENTRY;
 

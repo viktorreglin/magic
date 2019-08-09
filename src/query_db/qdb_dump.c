@@ -87,7 +87,7 @@ int main( int argc, char * argv[] )
    QDB_TABLEENTRY * properties;
    QDB_TABLEENTRY * prop;
    int numofprop;
-   static char proptypformat[] = "%-20s  %-10s%s\n";
+   static char proptypformat[] = "%-20s  %-10s  %8s  %c\n";
 
    if( argc != 3 )
       usage();
@@ -103,11 +103,11 @@ int main( int argc, char * argv[] )
    if( numofprop <= 0 )
       exit(0);
 
-   printf( proptypformat, "PROPERTY", "SQL TYPE", "" );
+   printf( proptypformat, "PROPERTY", "SQL TYPE", "", 'K' );
    prop = properties;
    while( prop->name )
    {
-      printf( proptypformat, prop->name, prop->sqltype, prop->isstring ? "  (string)" : "" );
+      printf( proptypformat, prop->name, prop->sqltype, prop->isstring ? "(string)" : "", prop->key ? '0' + prop->key : ' ' );
       prop++;
    }
 
