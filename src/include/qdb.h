@@ -1,4 +1,4 @@
-#ifndef _QDB_H_tabdef
+#ifndef _QDB_H_
 #define _QDB_H_
 
 #include <stdio.h>
