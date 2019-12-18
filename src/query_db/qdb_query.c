@@ -45,7 +45,7 @@ int main( int argc, char * argv[] )
    bool printquery = false;
    int idx = 1;
 
-   if( argc < 1 )
+   if( argc < 2 )
       usage();
 
    if( argv[1][0] == '-' )

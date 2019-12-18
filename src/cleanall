@@ -1,0 +1,27 @@
+cd ..
+cd bin
+rm formjson
+rm statistics
+rm qdb_create
+rm qdb_dump
+rm qdb_insert
+rm qdb_query
+cd ..
+cd src
+cd lib
+rm *.a
+cd ..
+cd parse_source
+rm *.o
+cd ..
+cd query_db
+cd obj
+rm *
+cd ..
+cd ..
+cd util
+cd obj
+rm *
+cd ..
+cd ..
+
