@@ -457,7 +457,7 @@ static int fillvalue( QDB_TABLEENTRY * properties, char * name, char * value )
 }
 
 
-static unsigned long insert( char * db, char * table, QDB_TABLEENTRY * properties, int numofprop )
+static unsigned long insert( char * db, char * table, QDB_TABLEENTRY * properties, int numofprop, bool printquery )
 {
    unsigned long n;
    char * query;
@@ -469,6 +469,11 @@ static unsigned long insert( char * db, char * table, QDB_TABLEENTRY * propertie
       return 0;
 
    query = sql_buildquery( pattern, table, 0, properties, numofprop, true, 0 );
+
+   if( printquery )
+   {
+      printf( " *** sql query[%s] ***\n", query );
+   }
 
    // zur Datenbank
    if( mysql_query( conn, query ) != 0 )
@@ -508,7 +513,7 @@ QDB_ROW qdb_begin_row( char * dbname, char * table )
 }
 
 
-bool qdb_end_row( QDB_ROW tr )
+bool qdb_end_row( QDB_ROW tr, bool printquery )
 {
    QDB_TABLEENTRY * prop;
    unsigned long rowsaffected = 0;
@@ -516,7 +521,7 @@ bool qdb_end_row( QDB_ROW tr )
    if( !tr )
       return false;
 
-   rowsaffected = insert( tr->dbname, tr->tablename, tr->properties, tr->numofprop );
+   rowsaffected = insert( tr->dbname, tr->tablename, tr->properties, tr->numofprop, printquery );
 
    prop = tr->properties;
    while( prop->name )

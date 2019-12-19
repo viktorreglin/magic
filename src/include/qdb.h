@@ -90,14 +90,22 @@ typedef QDB_ROWDATA * QDB_ROW;
 
 // Erzeugung einer Datenbank
 QDB_ROW    qdb_begin_row( char * dbname, char * table ); // Tabellenzeile anfangen
-bool       qdb_end_row( QDB_ROW tr ); // Tabellenzeile beenden und eintragen, true iff erfolgreich
+bool       qdb_end_row( QDB_ROW tr, bool printquery ); // Tabellenzeile beenden und eintragen, true iff erfolgreich
 bool       qdb_set_value( QDB_ROW tr, char * property, char * value ); // einen Wert eintragen
 
 
-// Abfrage und Änderung einer Datenbank
+// Abfrage einer Datenbank
 QDB_RESULT * qdb_query( char * dbname, char * table, int * nrows, char * filter, bool printquery );
 // liefert Ergebnis in allozierter Struktur, Anzahl der Zeilen wird auch über *nrows zurückgegeben, filter: Sprache siehe query_db_if.txt
 void qdb_free( QDB_RESULT * presult ); // gibt den Result-Speicher wieder frei
 
+// Änderung von Werten
+// benutze qdb_begin_row() und qdb_set_value() wie oben. Am Schluss aber:
+int qdb_update( QDB_ROW tr, char * filter, bool printquery );
+// filter wie in qdb_query(), gibt die Anzahl der geänderten Zeilen zurück
+
+// Löschen von Zeilen
+int qdb_erase( char * dbname, char * table, char * filter, bool printquery );
+// filter wie in qdb_query(), gibt die Anzahl der gelöschten Zeilen zurück
 
 #endif // _QDB_H_

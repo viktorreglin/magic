@@ -1,0 +1,4 @@
+../../bin/qdb_query  -p magic2 Card "id = 'c033ad60b21f98f9142611ccc023c1c789f8c617'"
+../../bin/qdb_update -p magic2 Card "id = 'c033ad60b21f98f9142611ccc023c1c789f8c617'" pricecent 123 pricedate 0 text "Preis geändert"
+../../bin/qdb_query     magic2 Card "id = 'c033ad60b21f98f9142611ccc023c1c789f8c617'"
+../../bin/qdb_update -p magic2 Card "id = 'c033ad60b21f98f9142611ccc023c1c789f8c617'" pricecent 0 text ""

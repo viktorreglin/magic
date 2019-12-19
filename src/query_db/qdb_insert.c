@@ -10,7 +10,7 @@
 
 static void usage( void )
 {
-   printf( "USAGE: qdb_insert DBName Table property value property value ...\n" );
+   printf( "USAGE: qdb_insert [-p] DBName Table property value property value ...\n" );
    exit(1);
 }
 
@@ -21,14 +21,28 @@ int main( int argc, char * argv[] )
    char * table;
    int i, numofpairs;
    QDB_ROW    tr;
+   bool printquery = false;
+   int idx = 1;
 
-   if( (argc < 5) || ((argc & 1) == 0) )  // wenigestens ein property/value-Paar, kein halbes Paar
+   if( argc < 5 )  // wenigstens ein property/value-Paar
       usage();
 
-   numofpairs = (argc-3)/2;
+   if( argv[1][0] == '-' )
+   {
+      if( strcmp(argv[1],"-p") == 0 )
+         printquery = true;
+      else
+         usage();
+      idx = 2;
+   }
 
-   db    = argv[1];
-   table = argv[2];
+   db    = argv[idx++];
+   table = argv[idx++];
+
+   if( (argc-idx) & 1 )
+      usage();   // keine halben Paare
+
+   numofpairs = (argc-idx)/2;
 
    tr = qdb_begin_row( db, table );
    if(!tr)
@@ -38,10 +52,10 @@ int main( int argc, char * argv[] )
    }
    for( i = 0; i < numofpairs; i++ )
    {
-      if( !qdb_set_value( tr, argv[3+2*i], argv[4+2*i] ) )
+      if( !qdb_set_value( tr, argv[idx+2*i], argv[idx+1+2*i] ) )
          printf( "ERROR: property '%s' not found\n", argv[3+2*i] );
    }
-   if( !qdb_end_row(tr) )
+   if( !qdb_end_row(tr, printquery) )
       printf( "ERROR: row NOT inserted in table '%s'\n", table );
 
    exit(0);

@@ -6,6 +6,7 @@ rm qdb_create
 rm qdb_dump
 rm qdb_insert
 rm qdb_query
+rm qdb_update
 cd ..
 cd src
 cd lib
