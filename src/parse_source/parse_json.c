@@ -148,7 +148,7 @@ void export_editions( cJSON * json, char * db, char * table ){
         }
 
         /* Zeile beenden */
-        qdb_end_row( tr );
+        qdb_end_row( tr, false );
 
         edt = edt->next;
 
@@ -264,7 +264,7 @@ void export_cards( cJSON * json, char * db, char * table, time_t start ){
             }
 
             /* Zeile beenden */
-            qdb_end_row( tr );
+            qdb_end_row( tr, false );
         }
         printf( "Elapsedd time: %.4ld\n", ( time( NULL ) - start ) );
         edt = edt->next;
