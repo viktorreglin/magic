@@ -17,7 +17,8 @@ int main( int argc, char * argv[] )
    char * db;
    char * table;
    char * query;
-   int nrows, numofpairs;
+   int i, nrows, numofpairs;
+   QDB_ROW    tr;
    bool printquery = false;
    int idx = 1;
 
@@ -42,7 +43,28 @@ int main( int argc, char * argv[] )
 
    numofpairs = (argc-idx)/2;
 
-   printf( "numofpairs = %d\n", numofpairs );
+   tr = qdb_begin_row( db, table );
+   if(!tr)
+   {
+      printf("FATAL: table '%s' not found in database '%s'\n", table, db );
+      exit(2);
+   }
+   for( i = 0; i < numofpairs; i++ )
+   {
+      if( !qdb_set_value( tr, argv[idx+2*i], argv[idx+1+2*i] ) )
+         printf( "ERROR: property '%s' not found\n", argv[3+2*i] );
+   }
+   nrows = qdb_update( tr, query, printquery );
+   if( nrows < 0 )
+   {
+      printf( "ERROR, nothing changed\n" );
+      exit(3);
+   }
+   else if( nrows == 0 )
+      printf( "no entries found, nothing changed\n" );
+   else
+      printf( "%d row%s changed.", nrows, nrows > 1 ? "s" : "" );
+
    exit(0);
 }
 

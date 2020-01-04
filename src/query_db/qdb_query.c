@@ -63,11 +63,11 @@ int main( int argc, char * argv[] )
    table = argv[idx++];
    query = argv[idx++];
 
-   printf( "DB=%s\nTable=%s\nQuery='%s'\n", db, table, query );
+   // printf( "DB=%s\nTable=%s\nQuery='%s'\n", db, table, query );;;
    pres = qdb_query( db, table, &nrows, query, printquery );
    if( nrows < 0 )
       printf( "error, no result\n" );
-   else if ( nrows == 0 )
+   else if( nrows == 0 )
       printf( "empty result\n" );
    else
    {

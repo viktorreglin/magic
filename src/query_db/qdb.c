@@ -346,11 +346,36 @@ int i, x, tablenamelen;
 }
 
 
+static char * insert1value( char * dst, QDB_TABLEENTRY * prop )
+{
+   int x = 0;
+   bool nonenulldate = false;
+   if( prop->isdate )
+   {
+      if( strcmp(prop->value,"0") == 0 )
+         prop->value = astrcpy("current_timestamp()");
+      else
+         nonenulldate = true;
+   }
+   if( prop->isstring  || nonenulldate )
+      *dst++ = QUERY_STRING_DELIM;
+   if( strcmp(prop->sqltype,"set") == 0 )
+      x = setvalcpy( dst, prop->value );  // fuegt , zw. Elementen ein
+   else
+      x = qstrcpy( dst, prop->value );
+   dst += strlen(prop->value) + x;
+   if( prop->isstring  || nonenulldate )
+      *dst++ = QUERY_STRING_DELIM;
+   *dst++ = QUERY_PAR_DELIM;
+   return dst;
+}
+
+
 static void insertvalues( char * query, char * pattern, char mark, int num, QDB_TABLEENTRY * prop )
 {
 char * dst;
 char * pat;
-int i, x;
+int i;
 
    dst = strchr( query, mark );
    pat = strchr( pattern, mark );
@@ -358,33 +383,15 @@ int i, x;
       return; // nothing to do
 
    for( i = 0; i < num; i++ )
-   {
-      bool nonenulldate = false;
-      if( prop[i].isdate )
-      {
-         if( strcmp(prop[i].value,"0") == 0 )
-            prop[i].value = astrcpy("current_timestamp()");
-         else
-            nonenulldate = true;
-      }
-      if( prop[i].isstring  || nonenulldate )
-         *dst++ = QUERY_STRING_DELIM;
-      if( strcmp(prop[i].sqltype,"set") == 0 )
-         x = setvalcpy( dst, prop[i].value );  // fuegt , zw. Elementen ein
-      else
-         x = qstrcpy( dst, prop[i].value );
-      dst += strlen(prop[i].value) + x;
-      if( prop[i].isstring  || nonenulldate )
-         *dst++ = QUERY_STRING_DELIM;
-      *dst++ = QUERY_PAR_DELIM;
-   }
+      dst = insert1value( dst, prop+i );
+
    dst--;
    pat++;
    strcpy( dst, pat );
 }
 
 
-char *  sql_buildquery( char * pattern, char * p1, char * p2, QDB_TABLEENTRY * prop, int num, bool withvalues, char * tablename )
+char *  sql_buildquery( char * pattern, char * p1, char * p2, QDB_TABLEENTRY * prop, int num, QDB_VALUE_CONTROL valctrl, char * tablename )
 {
    int i, qlen, tablenamelen;
    char * patt2; // pattern w parameters
@@ -404,12 +411,17 @@ char *  sql_buildquery( char * pattern, char * p1, char * p2, QDB_TABLEENTRY * p
    for( i = 0; i < num; i++ )
       qlen += strlen(prop[i].name) + 2 + tablenamelen; // 2 for , and .
 
-   if(withvalues)
+   if( valctrl != NO_VALUES )
    {
       for( i = 0; i < num; i++ )
       {
          if( prop[i].value == 0 )
+         {
+            if( valctrl == SOME_VALUES )
+               continue;
+
             prop[i].value = prop[i].isstring ? "" : astrcpy("0");
+         }
 
          if( prop[i].isdate && (strlen(prop[i].value) <= 1) )
             qlen += 19; // current_timestamp()
@@ -421,7 +433,7 @@ char *  sql_buildquery( char * pattern, char * p1, char * p2, QDB_TABLEENTRY * p
    query = salloc(qlen+1);
    strcpy(query,patt2);
    insertnames( query, patt2, '!', num, prop, tablename );
-   if( withvalues )
+   if( valctrl == ALL_VALUES )
       insertvalues( query, patt2, '?', num, prop );
 
    sfree( patt2 );
@@ -468,7 +480,7 @@ static unsigned long insert( char * db, char * table, QDB_TABLEENTRY * propertie
    if( !conn )
       return 0;
 
-   query = sql_buildquery( pattern, table, 0, properties, numofprop, true, 0 );
+   query = sql_buildquery( pattern, table, 0, properties, numofprop, ALL_VALUES, 0 );
 
    if( printquery )
    {
@@ -900,7 +912,7 @@ QDB_RESULT * qdb_query( char * dbname, char * table, int * nrows, char * filter,
    {
       tabexpr = build_join( dbname, table, properties, numofprop, foreigntable );
    }
-   query = sql_buildquery( pattern, tabexpr, where, properties, numofprop, false, table );
+   query = sql_buildquery( pattern, tabexpr, where, properties, numofprop, NO_VALUES, table );
    if( foreigntable[0] )
       sfree(tabexpr);
    if( printquery )
@@ -984,3 +996,34 @@ QDB_RESULT * qdb_query( char * dbname, char * table, int * nrows, char * filter,
    return pres;
 }
 
+
+static int update( char * db, char * table, QDB_TABLEENTRY * properties, int numofprop, char * filter, bool printquery )
+{
+   return 0;;;
+}
+
+
+int qdb_update( QDB_ROW tr, char * filter, bool printquery )
+{
+   QDB_TABLEENTRY * prop;
+   int rowsaffected;
+
+   if( !tr )
+      return false;
+
+   rowsaffected = update( tr->dbname, tr->tablename, tr->properties, tr->numofprop, filter, printquery );
+
+   prop = tr->properties;
+   while( prop->name )
+   {
+      if( prop->value && prop->value[0] )
+         sfree( prop->value );
+      prop++;
+   }
+
+   sfree(tr->tablename);
+   sfree(tr->dbname);
+   sfree(tr->properties);
+   sfree(tr);
+   return rowsaffected;
+}

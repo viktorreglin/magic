@@ -55,6 +55,8 @@ typedef struct
 } QDB_RESULT;
 
 
+typedef enum { NO_VALUES, ALL_VALUES, SOME_VALUES } QDB_VALUE_CONTROL;
+
 #ifdef TYPEMAPPING_DEFINITION
 static QDB_TYPEMAPPING typemapping[] =
 {
@@ -80,7 +82,7 @@ MYSQL * sql_open( char * dbname ); // Datenbank öffnen, returns 0 iff error
 void    sql_close( MYSQL * dh );
 char *  sql_type( char * magic_type );
 void    sql_print_error( MYSQL * conn, char * txt1, char * txt2 );
-char *  sql_buildquery( char * pattern, char * p1, char * p2, QDB_TABLEENTRY * prop, int num, bool withvalues, char * tablename );
+char *  sql_buildquery( char * pattern, char * p1, char * p2, QDB_TABLEENTRY * prop, int num, QDB_VALUE_CONTROL valctrl, char * tablename );
 // pattern: %s = p1, p2; ! = properties, ? = values
 
 QDB_TABLEENTRY * qdb_get_properties( char * dbname, char * tablename, int * pnum );
