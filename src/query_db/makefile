@@ -7,7 +7,7 @@ LIB= ar -cr $@ $^
 
 
 # goals
-all: ../../bin/qdb_create ../../bin/qdb_dump ../../bin/qdb_insert ../../bin/qdb_query ../../bin/qdb_update
+all: ../../bin/qdb_create ../../bin/qdb_dump ../../bin/qdb_insert ../../bin/qdb_query ../../bin/qdb_update ../../bin/qdb_erase
 
 
 # build library
@@ -28,6 +28,9 @@ all: ../../bin/qdb_create ../../bin/qdb_dump ../../bin/qdb_insert ../../bin/qdb_
 	$(LINK)
 
 ../../bin/qdb_update: obj/qdb_update.o ../lib/libutil.a ../lib/libqdb.a
+	$(LINK)
+
+../../bin/qdb_erase: obj/qdb_erase.o ../lib/libutil.a ../lib/libqdb.a
 	$(LINK)
 
 # compile

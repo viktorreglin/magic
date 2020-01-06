@@ -404,9 +404,9 @@ char *  sql_buildquery( char * pattern, char * p1, char * p2, QDB_TABLEENTRY * p
       p1 = "";
    if( !p2 )
       p2 = "";
+
+   // max query length = pattern length + parameter lengths + length of all property names + length of all values
    qlen  = strlen(pattern) + strlen(p1) + strlen(p2) + 1;
-   patt2 = salloc(qlen+1);
-   sprintf( patt2, pattern, p1, p2 );
 
    for( i = 0; i < num; i++ )
       qlen += strlen(prop[i].name) + 2 + tablenamelen; // 2 for , and .
@@ -431,10 +431,15 @@ char *  sql_buildquery( char * pattern, char * p1, char * p2, QDB_TABLEENTRY * p
    }
 
    query = salloc(qlen+1);
-   strcpy(query,patt2);
-   insertnames( query, patt2, '!', num, prop, tablename );
+   patt2 = salloc(qlen+1);
+
+   strcpy(patt2,pattern);
+
+   insertnames( patt2, pattern, '!', num, prop, tablename );
    if( valctrl == ALL_VALUES )
-      insertvalues( query, patt2, '?', num, prop );
+      insertvalues( patt2, pattern, '?', num, prop );
+
+   sprintf( query, patt2, p1, p2 );
 
    sfree( patt2 );
    return query;
@@ -874,18 +879,42 @@ static char * build_join( char * dbname, char * tab, QDB_TABLEENTRY * tab_prop, 
 }
 
 
+static char * prepare_query( char * dbname, char * table, char * filter, bool printquery, char * pattern, QDB_VALUE_CONTROL valctrl, QDB_TABLEENTRY * properties, int numofprop )
+{
+   char * where;
+   char * tabexpr;
+   char * query;
+   char foreigntable[MAX_TABLE_NAME_LENGTH+1];
+
+   foreigntable[0] = 0;
+   where = build_where( filter, table, foreigntable );
+   tabexpr  = table;
+   if( foreigntable[0] )
+   {
+      tabexpr = build_join( dbname, table, properties, numofprop, foreigntable );
+   }
+
+   query = sql_buildquery( pattern, tabexpr, where, properties, numofprop, valctrl, table );
+
+   if( foreigntable[0] )
+      sfree(tabexpr);
+
+   if( printquery )
+      printf( " *** sql query[%s] ***\n", query );
+
+   return query;
+}
+
+
 QDB_RESULT * qdb_query( char * dbname, char * table, int * nrows, char * filter, bool printquery )
 {
    MYSQL * conn;
    MYSQL_RES * result;
    MYSQL_ROW   row;
    int i, r, nfields, numofprop;
-   char * where;
    char * query;
-   char * tabexpr;
    QDB_TABLEENTRY * properties;
    QDB_RESULT * pres;
-   char foreigntable[MAX_TABLE_NAME_LENGTH+1];
 
    static char pattern[] = "select ! from %s where %s;"; // ! = properties
 
@@ -905,26 +934,7 @@ QDB_RESULT * qdb_query( char * dbname, char * table, int * nrows, char * filter,
    if( !properties )
       return 0;
 
-   foreigntable[0] = 0;
-   where = build_where( filter, table, foreigntable );
-   tabexpr  = table;
-   if( foreigntable[0] )
-   {
-      tabexpr = build_join( dbname, table, properties, numofprop, foreigntable );
-   }
-   query = sql_buildquery( pattern, tabexpr, where, properties, numofprop, NO_VALUES, table );
-   if( foreigntable[0] )
-      sfree(tabexpr);
-   if( printquery )
-   {
-      //printf( " *** pattern = [%s]\n", pattern );
-      //printf( " *** table   = [%s]\n", table );
-      //printf( " *** filter  = [%s]\n", filter );
-      //printf( " *** where   = [%s]\n", where );
-
-      printf( " *** sql query[%s] ***\n", query );
-   }
-
+   query = prepare_query( dbname, table, filter, printquery, pattern, NO_VALUES, properties, numofprop );
    // zur Datenbank
    if( mysql_query( conn, query ) != 0 )
    {
@@ -989,8 +999,8 @@ QDB_RESULT * qdb_query( char * dbname, char * table, int * nrows, char * filter,
          sql_print_error( conn, "cannot store result", query );
       }
    }
-   sfree(properties);
    sfree( query );
+   sfree(properties);
    sql_close( conn );
 
    return pres;
@@ -1027,3 +1037,38 @@ int qdb_update( QDB_ROW tr, char * filter, bool printquery )
    sfree(tr);
    return rowsaffected;
 }
+
+
+int qdb_erase( char * dbname, char * table, char * filter, bool printquery )
+{
+   MYSQL * conn;
+   int  nrows, numofprop;
+   char * query;
+   QDB_TABLEENTRY * properties;
+
+   static char pattern[] = "delete from %s where %s;";
+
+   nrows = 0;
+
+   if( !dbname || !table || !filter )
+      return -1;
+
+   conn = sql_open( dbname );
+   if( !conn )
+      return -1;
+
+   properties = qdb_get_properties( dbname, table, &numofprop );
+   if( !properties )
+      return -1;
+
+   query = prepare_query( dbname, table, filter, printquery, pattern, NO_VALUES, properties, numofprop );
+
+   ;;;
+
+   sfree( query );
+   sfree(properties);
+   sql_close( conn );
+
+   return nrows;
+}
+
