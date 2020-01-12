@@ -192,6 +192,7 @@ QDB_TABLEENTRY * qdb_get_properties( char * db, char * table, int * pnum )
    if( mysql_query( conn, query ) != 0 )
    {
       sql_print_error( conn, "cannot get meta data", query );
+      sql_close( conn );
       return 0;
    }
    else
@@ -939,8 +940,7 @@ QDB_RESULT * qdb_query( char * dbname, char * table, int * nrows, char * filter,
    if( mysql_query( conn, query ) != 0 )
    {
       sql_print_error( conn, "cannot: ", query );
-      sfree(properties);
-      return 0;
+      pres = 0;
    }
    else
    {
@@ -1055,15 +1055,34 @@ int qdb_erase( char * dbname, char * table, char * filter, bool printquery )
 
    conn = sql_open( dbname );
    if( !conn )
-      return -1;
+      return -2;
 
    properties = qdb_get_properties( dbname, table, &numofprop );
    if( !properties )
-      return -1;
+   {
+      sql_close( conn );
+      return -3;
+   }
 
    query = prepare_query( dbname, table, filter, printquery, pattern, NO_VALUES, properties, numofprop );
+   if( strstr( query, " join " ) )
+   {
+      sfree( query );
+      sfree(properties);
+      sql_close( conn );
 
-   ;;;
+      fprintf( stderr, "ERROR: erase from %s cannot use properties from another table\n", table );
+      return -4; // join nicht erlaubt
+   }
+
+   if( mysql_query( conn, query ) != 0 )
+   {
+      sql_print_error( conn, "cannot: ", query );
+   }
+   else
+   {
+      nrows = mysql_affected_rows( conn );
+   }
 
    sfree( query );
    sfree(properties);

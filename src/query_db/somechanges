@@ -1,11 +1,14 @@
-# loesche alle Karten aus Editionen, die mit "un" beginnen
-../../bin/qdb_query -p magic2 Card "Edition.name like 'un*'"
+# losche alle Kreaturen
+../../bin/qdb_query -p magic2 Card "Card.types = 'Creature'"
+../../bin/qdb_erase -p magic2 Card "Card.types = 'Creature'"
+../../bin/qdb_query    magic2 Card "Card.types = 'Creature'"
+
+# Folgendes geht nicht:
 ../../bin/qdb_erase -p magic2 Card "Edition.name like 'un*'"
-../../bin/qdb_query    magic2 Card "Edition.name like 'un*'"
 
 # Aendere den Preis einer Karte
-PRICE=$RANDOM
-echo price=$PRICE
-../../bin/qdb_query  -p magic2 Card "id = 'c033ad60b21f98f9142611ccc023c1c789f8c617'"
-../../bin/qdb_update -p magic2 Card "id = 'c033ad60b21f98f9142611ccc023c1c789f8c617'" pricecent $PRICE pricedate 0 text "Preis geändert"
-../../bin/qdb_query     magic2 Card "id = 'c033ad60b21f98f9142611ccc023c1c789f8c617'"
+##PRICE=$RANDOM
+##echo price=$PRICE
+##../../bin/qdb_query  -p magic2 Card "id = 'c033ad60b21f98f9142611ccc023c1c789f8c617'"
+##../../bin/qdb_update -p magic2 Card "id = 'c033ad60b21f98f9142611ccc023c1c789f8c617'" pricecent $PRICE pricedate 0 text "Preis geändert"
+##../../bin/qdb_query     magic2 Card "id = 'c033ad60b21f98f9142611ccc023c1c789f8c617'"

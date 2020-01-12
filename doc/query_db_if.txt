@@ -48,7 +48,6 @@ qdb_create DBName Tabellendefinition
 
    Hinweis: qdb_create erzeugt als Nebeneffekt die Datei DBName.sql.
 
-
 qdb_show
    listet die vorhandenen Datenbanken.
 
@@ -63,6 +62,17 @@ qdb_dump DBName Table
 
 qdb_insert DBName Table property value property value ...
    trägt die angegebenen Werte in die Datenbanktabelle ein.
+
+qdb_query DBName Table Query
+   sucht Datensaetze in der angegebenen Datanbank-Tabelle, Query: siehe unten "Abfragesprache"
+
+qdb_erase DBName Table Query
+   loescht Datensaetze aus der angegebenen Datanbank-Tabelle, Query: siehe unten "Abfragesprache"
+   In der Query duerfen nur Eigenschaften aus Table verwendet werden.
+
+qdb_update DBName Table Query property value property value ...
+   aendert Datensaetze in der angegebenen Datanbank-Tabelle, Query: siehe anten "Abfragesprache"
+   In der Query duerfen nur Eigenschaften aus Table verwendet werden.
 
 
 2. Bibliothek
@@ -108,8 +118,12 @@ Syntax
 
   Properties werden mit ihrem Namen angegeben, optional mit Tabellenname davor (zwingend, wenn sonst nicht eindeutig)
    Beispiele: artist, manaCost, releasedate, Card.name, edition.NAME
+   ACHTUNG: Beim Loeschen oder Aendern von muss man innrhalb einer Tabelle bleiben, d.h. es koennen nur Eigenschaften aus der Tabelle verwendet werden,
+   die geaendert werden soll (qdb_erase, qdb_update).
+   Beim Suchen koennen Werte aus 2 Tabellen verwendet werden (qdb_query).
 
-  Eine Abfrage ist ein Ausdruck, der TRUE oder FALSE liefern muss, bei TRUE erscheint die entsprechende Zeile im Ergebnis. Ausdrücke werden gebildet aus Properties (die für ihre Werte stehen), Konstanten, Operatoren, Funktionen und runden Klammern.
+  Eine Abfrage ist ein Ausdruck, der TRUE oder FALSE liefern muss, bei TRUE erscheint die entsprechende Zeile im Ergebnis. Ausdrücke werden gebildet aus
+  Properties (die für ihre Werte stehen), Konstanten, Operatoren, Funktionen und runden Klammern.
    Konstanten:
     bool:    TRUE FALSE
     int:     wie üblich (dezimal)

@@ -49,7 +49,7 @@ int main( int argc, char * argv[] )
    else if( nrows == 0 )
       printf( "no entries found, nothing changed\n" );
    else
-      printf( "%d row%s erased.", nrows, nrows > 1 ? "s" : "" );
+      printf( "%d row%s erased.\n", nrows, nrows > 1 ? "s" : "" );
 
    exit(0);
 }
