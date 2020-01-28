@@ -13,6 +13,7 @@
 
 #define QUERY_STRING_DELIM '\''
 #define QUERY_PAR_DELIM    ','
+#define QUERY_ASSIGN       '='
 
 #define MAX_TABLE_NAME_LENGTH 100
 
@@ -392,6 +393,34 @@ int i;
 }
 
 
+static void insertpairs( char * query, char * pattern, char mark, int num, QDB_TABLEENTRY * prop )
+{
+char * dst;
+char * pat;
+int i, x;
+
+   dst = strchr( query, mark );
+   pat = strchr( pattern, mark );
+   if( !dst || !pat )
+      return; // nothing to do
+
+   for( i = 0; i < num; i++ )
+   {
+      if( prop[i].value == 0 )
+         continue;
+
+      x = qstrcpy( dst, prop[i].name );
+      dst += strlen(prop[i].name) + x;
+      *dst++ = QUERY_ASSIGN;
+      dst = insert1value( dst, prop+i );
+   }
+
+   dst--;
+   pat++;
+   strcpy( dst, pat );
+}
+
+
 char *  sql_buildquery( char * pattern, char * p1, char * p2, QDB_TABLEENTRY * prop, int num, QDB_VALUE_CONTROL valctrl, char * tablename )
 {
    int i, qlen, tablenamelen;
@@ -439,6 +468,8 @@ char *  sql_buildquery( char * pattern, char * p1, char * p2, QDB_TABLEENTRY * p
    insertnames( patt2, pattern, '!', num, prop, tablename );
    if( valctrl == ALL_VALUES )
       insertvalues( patt2, pattern, '?', num, prop );
+   else if( valctrl == SOME_VALUES )
+      insertpairs( patt2, pattern, '@', num, prop );
 
    sprintf( query, patt2, p1, p2 );
 
@@ -880,7 +911,7 @@ static char * build_join( char * dbname, char * tab, QDB_TABLEENTRY * tab_prop, 
 }
 
 
-static char * prepare_query( char * dbname, char * table, char * filter, bool printquery, char * pattern, QDB_VALUE_CONTROL valctrl, QDB_TABLEENTRY * properties, int numofprop )
+static char * prepare_query( char * dbname, char * table, char * filter, bool printquery, char * pattern, QDB_VALUE_CONTROL valctrl, QDB_TABLEENTRY * properties, int numofprop, bool * hasjoin )
 {
    char * where;
    char * tabexpr;
@@ -889,10 +920,15 @@ static char * prepare_query( char * dbname, char * table, char * filter, bool pr
 
    foreigntable[0] = 0;
    where = build_where( filter, table, foreigntable );
+   if( hasjoin )
+      *hasjoin = false;
+
    tabexpr  = table;
    if( foreigntable[0] )
    {
       tabexpr = build_join( dbname, table, properties, numofprop, foreigntable );
+      if( hasjoin )
+         *hasjoin = true;
    }
 
    query = sql_buildquery( pattern, tabexpr, where, properties, numofprop, valctrl, table );
@@ -935,7 +971,7 @@ QDB_RESULT * qdb_query( char * dbname, char * table, int * nrows, char * filter,
    if( !properties )
       return 0;
 
-   query = prepare_query( dbname, table, filter, printquery, pattern, NO_VALUES, properties, numofprop );
+   query = prepare_query( dbname, table, filter, printquery, pattern, NO_VALUES, properties, numofprop, 0 );
    // zur Datenbank
    if( mysql_query( conn, query ) != 0 )
    {
@@ -1007,19 +1043,52 @@ QDB_RESULT * qdb_query( char * dbname, char * table, int * nrows, char * filter,
 }
 
 
-static int update( char * db, char * table, QDB_TABLEENTRY * properties, int numofprop, char * filter, bool printquery )
+static long update( char * db, char * table, QDB_TABLEENTRY * properties, int numofprop, char * filter, bool printquery )
 {
-   return 0;;;
+   long n;
+   char * query;
+   MYSQL * conn;
+   bool hasjoin;
+   static char pattern[] = "update %s set @ where %s;"; // @ = property = value  list
+
+   conn = sql_open( db );
+   if( !conn )
+      return -2;
+
+   query = prepare_query( db, table, filter, printquery, pattern, SOME_VALUES, properties, numofprop, &hasjoin );
+   if( hasjoin )
+   {
+      sfree( query );
+      sql_close( conn );
+
+      fprintf( stderr, "ERROR: update %s cannot use properties from another table\n", table );
+      return -4; // join nicht erlaubt
+   }
+
+   // zur Datenbank
+   if( mysql_query( conn, query ) != 0 )
+   {
+      n = 0;
+      sql_print_error( conn, "cannot: ", query );
+   }
+   else
+   {
+      n = (long)mysql_affected_rows(conn);
+   }
+
+   sfree( query );
+   sql_close( conn );
+   return n;
 }
 
 
-int qdb_update( QDB_ROW tr, char * filter, bool printquery )
+long qdb_update( QDB_ROW tr, char * filter, bool printquery )
 {
    QDB_TABLEENTRY * prop;
    int rowsaffected;
 
    if( !tr )
-      return false;
+      return -1;
 
    rowsaffected = update( tr->dbname, tr->tablename, tr->properties, tr->numofprop, filter, printquery );
 
@@ -1044,6 +1113,7 @@ int qdb_erase( char * dbname, char * table, char * filter, bool printquery )
    MYSQL * conn;
    int  nrows, numofprop;
    char * query;
+   bool hasjoin;
    QDB_TABLEENTRY * properties;
 
    static char pattern[] = "delete from %s where %s;";
@@ -1064,8 +1134,8 @@ int qdb_erase( char * dbname, char * table, char * filter, bool printquery )
       return -3;
    }
 
-   query = prepare_query( dbname, table, filter, printquery, pattern, NO_VALUES, properties, numofprop );
-   if( strstr( query, " join " ) )
+   query = prepare_query( dbname, table, filter, printquery, pattern, NO_VALUES, properties, numofprop, &hasjoin );
+   if( hasjoin )
    {
       sfree( query );
       sfree(properties);

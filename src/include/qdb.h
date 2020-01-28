@@ -83,7 +83,7 @@ void    sql_close( MYSQL * dh );
 char *  sql_type( char * magic_type );
 void    sql_print_error( MYSQL * conn, char * txt1, char * txt2 );
 char *  sql_buildquery( char * pattern, char * p1, char * p2, QDB_TABLEENTRY * prop, int num, QDB_VALUE_CONTROL valctrl, char * tablename );
-// pattern: %s = p1, p2; ! = properties, ? = values
+// pattern: %s = p1, p2; ! = properties, ? = values, @ = property=value pairs
 
 QDB_TABLEENTRY * qdb_get_properties( char * dbname, char * tablename, int * pnum );
 
@@ -103,7 +103,7 @@ void qdb_free( QDB_RESULT * presult ); // gibt den Result-Speicher wieder frei
 
 // Änderung von Werten
 // benutze qdb_begin_row() und qdb_set_value() wie oben. Am Schluss aber:
-int qdb_update( QDB_ROW tr, char * filter, bool printquery );
+long qdb_update( QDB_ROW tr, char * filter, bool printquery );
 // filter wie in qdb_query(), gibt die Anzahl der geänderten Zeilen zurück
 
 // Löschen von Zeilen

@@ -17,7 +17,8 @@ int main( int argc, char * argv[] )
    char * db;
    char * table;
    char * query;
-   int i, nrows, numofpairs;
+   int i, numofpairs;
+   long nrows;
    QDB_ROW    tr;
    bool printquery = false;
    int idx = 1;
@@ -63,7 +64,7 @@ int main( int argc, char * argv[] )
    else if( nrows == 0 )
       printf( "no entries found, nothing changed\n" );
    else
-      printf( "%d row%s changed.", nrows, nrows > 1 ? "s" : "" );
+      printf( "%ld row%s changed.\n", nrows, nrows > 1 ? "s" : "" );
 
    exit(0);
 }
