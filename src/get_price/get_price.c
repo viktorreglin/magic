@@ -49,7 +49,8 @@ long filelength( FILE * fp )
 
 int price_string( FILE * fp, char * price ){
    char * string_before_price = "Price Trend</dt>";
-   char * string_after_price = " &#x20AC;</span>";
+   //char * string_after_price = " &#x20AC;</span>"; //LOOKS TO BE DIFFERENT NOW ON 2020-02-12
+   char * string_after_price = "</span></dd><dt class=\"col-6 col-xl-5\">30-days average price";
    int char_delta = 49; // Anzahl Zeichen von Beginn string_before_price bis direkt vor dem wirklichen Preis
    char * start;
    char * end;

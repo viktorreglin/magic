@@ -2,7 +2,7 @@
 CFLAGS=-g -c -Wall -I ../include -DLINUX
 
 CCR= gcc $(CFLAGS) -o $@ $<
-LINK=gcc -g -o $@ $< -L../lib -lutil
+LINK=gcc -no-pie -g -o $@ $< -L../lib -lutil
 LIB= ar -cr $@ $^
 
 # goals

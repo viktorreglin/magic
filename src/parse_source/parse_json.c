@@ -1,5 +1,11 @@
 // JSON-Datenbank in Editionen und Karten aufteilen
 
+/*
+
+ADD FLAG FOR PRICE DOWNLOAD
+
+*/
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -233,7 +239,7 @@ void export_cards( cJSON * json, char * db, char * table, time_t start ){
                         /* Falls es der Kartenname ist, dann auch den Preis abfragen */
                         if ( strcmp( card_trait_ids[i], "name" ) == 0 ){
                             printf( "card: %s\n", obj_string( obj ) );
-
+                            ///*
                             url_string[0] = '\0';
                             price_string[0] = '\0';
                             price = get_price( space_to_dash( obj_string( obj ) ), edition, url_string, price_string );
@@ -241,7 +247,8 @@ void export_cards( cJSON * json, char * db, char * table, time_t start ){
                                 sprintf( str, "%.2f", price );
                                 qdb_set_value( tr, "priceeuro", str );
                             }
-                            //sleep( 3 );
+                            //*/
+                            //sleep( 1 );
                         }
                         break;
 
