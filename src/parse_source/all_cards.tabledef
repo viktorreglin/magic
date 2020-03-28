@@ -8,7 +8,7 @@ table Edition
    releaseDate          date
    border               string(10)
    type                 string(20)
-   mkm_name             string(20)
+   mkm_name             string(40)
    mkm_id               int
 endtable
 
@@ -16,7 +16,7 @@ table Card
    artist               string(40)
    cmc                  int
    colorIdentity        color
-   colors               string(20)
+   colors               string(30)
    flavor               string
   *id                   ident
    imageName            string(80)
@@ -32,11 +32,11 @@ table Card
    supertypes           string(40)
    text                 string
    toughness            string(10)
-   type                 string(40)
+   type                 string(320)
    types                string(40)
   +edition_code         string(10) Edition(code)
-#   pricecent            int
    datadate             date
    pricedate            date
    priceeuro            float
 endtable
+

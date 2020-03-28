@@ -166,7 +166,7 @@ void export_editions( cJSON * json, char * db, char * table ){
 /* Schreibt alle Karten eines cJSON-Objekts in eine Datei */
 void export_cards( cJSON * json, char * db, char * table, time_t start ){
 
-    int     i;
+    int     i, cardnr;
     int     j = 0;
     cJSON * edt;
     cJSON * cards;
@@ -200,7 +200,7 @@ void export_cards( cJSON * json, char * db, char * table, time_t start ){
 
     /* Erste Edition ist das Kind des gesamten cJSON-Objekts */
     edt = json->child;
-
+    cardnr = 1;
     do {
         /* Edition auslesen um den Kartenpreis abzufragen */
         edition_json = cJSON_GetObjectItemCaseSensitive( edt, edt_name_id );
@@ -238,17 +238,19 @@ void export_cards( cJSON * json, char * db, char * table, time_t start ){
 
                         /* Falls es der Kartenname ist, dann auch den Preis abfragen */
                         if ( strcmp( card_trait_ids[i], "name" ) == 0 ){
-                            printf( "card: %s\n", obj_string( obj ) );
+                            printf( "%d. card: %s ", cardnr, obj_string( obj ) );
                             ///*
                             url_string[0] = '\0';
                             price_string[0] = '\0';
-                            price = get_price( space_to_dash( obj_string( obj ) ), edition, url_string, price_string );
-                            if ( price > 0 ) {
+                            price = get_price( space_to_dash( obj_string( obj ) ), edition, url_string, price_string, 10 /*sec*/ );
+                            /*if ( price > 0 )*/ {
+                                printf( "   \t %.2f", price );
                                 sprintf( str, "%.2f", price );
                                 qdb_set_value( tr, "priceeuro", str );
                             }
                             //*/
                             //sleep( 1 );
+                            printf("\n");
                         }
                         break;
 
@@ -272,6 +274,7 @@ void export_cards( cJSON * json, char * db, char * table, time_t start ){
 
             /* Zeile beenden */
             qdb_end_row( tr, false );
+            cardnr++;
         }
         printf( "Elapsedd time: %.4ld\n", ( time( NULL ) - start ) );
         edt = edt->next;

@@ -11,7 +11,7 @@
 
 void get_url( char * card, char * edition, char * url );
 
-int download_page( FILE * fp, char * url );
+int download_page( FILE * fp, char * url, long max_seconds );
 
 long filelength( FILE * fp );
 
@@ -23,4 +23,4 @@ float price_to_number( char * price_string );
 
 char * format_name( char * name );
 
-float get_price( char * card, char * edition, char * url, char * price );
+float get_price( char * card, char * edition, char * url, char * price, long max_seconds );
